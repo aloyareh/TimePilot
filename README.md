@@ -106,41 +106,6 @@ lib/
 └── main.dart
 ```
 
-## Memulai
-
-### Prasyarat
-- Flutter SDK (stabil) dan Dart
-- Perangkat Android atau emulator dengan sensor virtual
-- Proyek Supabase dan kunci API LLM milikmu sendiri
-
-### Instalasi
-
-```bash
-git clone https://github.com/<username>/tempogig.git
-cd tempogig
-flutter pub get
-```
-
-### Konfigurasi
-
-Jangan commit kunci API. Berikan nilai lewat `--dart-define`:
-
-```bash
-flutter run \
-  --dart-define=SUPABASE_URL=<url-proyek-supabase> \
-  --dart-define=SUPABASE_ANON_KEY=<anon-key> \
-  --dart-define=LLM_API_KEY=<kunci-llm>
-```
-
-Jalankan skema database (`supabase/schema.sql`, akan ditambahkan) di SQL Editor Supabase sebelum menjalankan aplikasi.
-
-## Keterbatasan
-
-- **Blockchain bersifat simulasi satu node.** Log hanya *tamper-evident*: perubahan diam-diam setelah pencatatan terdeteksi. Log tidak membuktikan bahwa jam tersebut benar-benar dikerjakan.
-- **Alarm dioptimalkan untuk Android.** Platform lain membatasi alarm dan aplikasi latar belakang.
-- **Kurs** diambil dari API publik dan di-cache; saat offline aplikasi memakai kurs terakhir.
-- **Zona waktu London berubah** antara BST dan GMT; konversi memakai paket `timezone`, bukan offset tetap.
-
 ## Tim
 
 | Nama | Peran |
