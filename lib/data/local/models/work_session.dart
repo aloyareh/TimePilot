@@ -20,7 +20,7 @@ class WorkSession {
   final DateTime? endedAtUtc; 
 
   @HiveField(5)
-  final int durationSecconds;
+  final int durationSeconds;
 
   @HiveField(6)
   final int lateMinutes;
@@ -37,7 +37,7 @@ class WorkSession {
     required this.clientId,
     required this.startedAtUtc,
     this.endedAtUtc,
-    this.durationSecconds = 0,
+    this.durationSeconds = 0,
     this.lateMinutes = 0,
     required this.updatedAt,
     this.isDeleted = false,

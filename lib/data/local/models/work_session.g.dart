@@ -22,7 +22,7 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       clientId: fields[2] as String,
       startedAtUtc: fields[3] as DateTime,
       endedAtUtc: fields[4] as DateTime?,
-      durationSecconds: fields[5] == null ? 0 : (fields[5] as num).toInt(),
+      durationSeconds: fields[5] == null ? 0 : (fields[5] as num).toInt(),
       lateMinutes: fields[6] == null ? 0 : (fields[6] as num).toInt(),
       updatedAt: fields[7] as DateTime,
       isDeleted: fields[8] == null ? false : fields[8] as bool,
@@ -44,7 +44,7 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       ..writeByte(4)
       ..write(obj.endedAtUtc)
       ..writeByte(5)
-      ..write(obj.durationSecconds)
+      ..write(obj.durationSeconds)
       ..writeByte(6)
       ..write(obj.lateMinutes)
       ..writeByte(7)
