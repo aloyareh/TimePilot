@@ -8,14 +8,15 @@ class AuthException implements Exception {
   final String code;
 
   String get message => switch (code) {
-        'USERNAME_INVALID' =>
-          'Username 3–30 karakter: huruf, angka, titik, atau garis bawah.',
-        'PASSWORD_INVALID' => 'Password harus 8–72 karakter.',
-        'USERNAME_TAKEN' => 'Username sudah dipakai.',
-        'INVALID_CREDENTIALS' => 'Username atau password salah.',
-        'NETWORK' => 'Tidak ada koneksi internet.',
-        _ => 'Terjadi kesalahan. Coba lagi.',
-      };
+    'USERNAME_INVALID' =>
+      'Username 3–30 karakter: huruf, angka, titik, atau garis bawah.',
+    'PASSWORD_INVALID' => 'Password harus 8–72 karakter.',
+    'USERNAME_TAKEN' => 'Username sudah dipakai.',
+    'INVALID_CREDENTIALS' => 'Username atau password salah.',
+    'NETWORK' => 'Tidak ada koneksi internet.',
+    _ => 'Terjadi kesalahan. Coba lagi.',
+    'SESSION_INVALID' => 'Sesi berakhir. Masuk dengan password.',
+  };
 
   @override
   String toString() => 'AuthException($code)';
@@ -23,8 +24,8 @@ class AuthException implements Exception {
 
 class AuthRepository {
   AuthRepository({SupabaseClient? client, SessionStorage? storage})
-      : _client = client ?? Supabase.instance.client,
-        _storage = storage ?? const SessionStorage();
+    : _client = client ?? Supabase.instance.client,
+      _storage = storage ?? const SessionStorage();
 
   final SupabaseClient _client;
   final SessionStorage _storage;
@@ -99,8 +100,14 @@ class AuthRepository {
   }
 
   Future<AppUser> _saveSession(Map<String, dynamic> res) async {
-    final user = AppUser.fromJson(Map<String, dynamic>.from(res['user'] as Map));
+    final user = AppUser.fromJson(
+      Map<String, dynamic>.from(res['user'] as Map),
+    );
     await _storage.save(res['token'] as String, user);
     return user;
   }
+
+  Future<bool> isBiometricEnabled() => _storage.readBiometricEnabled();
+  Future<void> setBiometricEnabled(bool value) =>
+      _storage.saveBiometricEnabled(value);
 }

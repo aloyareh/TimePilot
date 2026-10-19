@@ -10,6 +10,13 @@ class SessionStorage {
   final FlutterSecureStorage _storage;
   static const _tokenKey = 'session_token';
   static const _userKey = 'session_user';
+  static const _bioKey = 'biometric_enabled';
+
+  Future<bool> readBiometricEnabled() async =>
+      (await _storage.read(key: _bioKey)) == 'true';
+
+  Future<void> saveBiometricEnabled(bool value) =>
+      _storage.write(key: _bioKey, value: value.toString());
 
   Future<String?> readToken() => _storage.read(key: _tokenKey);
 
@@ -27,5 +34,6 @@ class SessionStorage {
   Future<void> clear() async {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _userKey);
+    await _storage.delete(key: _bioKey);
   }
 }
