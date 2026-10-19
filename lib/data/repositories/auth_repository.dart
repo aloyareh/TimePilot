@@ -14,8 +14,8 @@ class AuthException implements Exception {
     'USERNAME_TAKEN' => 'Username sudah dipakai.',
     'INVALID_CREDENTIALS' => 'Username atau password salah.',
     'NETWORK' => 'Tidak ada koneksi internet.',
-    _ => 'Terjadi kesalahan. Coba lagi.',
     'SESSION_INVALID' => 'Sesi berakhir. Masuk dengan password.',
+    _ => 'Terjadi kesalahan. Coba lagi.',
   };
 
   @override

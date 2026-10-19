@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:time_pilot/data/local/hive_boxes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/env.dart';
-import 'data/repositories/auth_repository.dart';
 
 // import 'package:time_pilot/core/theme/app_theme.dart'; // sesuaikan dengan file tema PBI-01
 
