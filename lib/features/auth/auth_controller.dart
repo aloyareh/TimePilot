@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/biometric_service.dart';
 import '../../data/models/app_user.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../core/biometric_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(),
@@ -22,11 +22,28 @@ class AuthController extends AsyncNotifier<AppUser?> {
     return _repo.restoreSession();
   }
 
-  Future<void> loginWithBiometric() async {
+  Future<String?> login(String username, String password) => _run(
+    () => _repo.login(username: username, password: password),
+  );
+
+  Future<String?> register(
+    String username,
+    String password,
+    String? fullName,
+  ) => _run(
+    () => _repo.register(
+      username: username,
+      password: password,
+      fullName: fullName,
+    ),
+  );
+
+  Future<String?> loginWithBiometric() async {
     final bio = ref.read(biometricServiceProvider);
-    if (!await bio.authenticate('Masuk ke Time Pilot')) return;
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    if (!await bio.authenticate('Masuk ke Time Pilot')) {
+      return 'Autentikasi biometrik dibatalkan atau gagal.';
+    }
+    return _run(() async {
       final user = await _repo.restoreSession();
       if (user == null) throw const AuthException('SESSION_INVALID');
       return user;
@@ -43,23 +60,18 @@ class AuthController extends AsyncNotifier<AppUser?> {
 
   Future<void> disableBiometric() => _repo.setBiometricEnabled(false);
 
-  Future<void> register(
-    String username,
-    String password,
-    String? fullName,
-  ) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _repo.register(
-        username: username,
-        password: password,
-        fullName: fullName,
-      ),
-    );
-  }
-
   Future<void> logout() async {
     await _repo.logout();
     state = const AsyncData(null);
+  }
+
+  Future<String?> _run(Future<AppUser> Function() action) async {
+    try {
+      final user = await action();
+      state = AsyncData(user);
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    }
   }
 }
