@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../blockchain/blockchain_page.dart';
 import '../dev/alarm_spike_page.dart';
 import '../tasks/task_list_page.dart';
 import 'auth_controller.dart';
@@ -29,6 +30,13 @@ class TempHome extends ConsumerWidget {
             title: const Text('Daftar tugas'),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const TaskListPage()),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.link),
+            title: const Text('Blockchain sesi'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const BlockchainPage()),
             ),
           ),
           const BiometricToggleTile(),
