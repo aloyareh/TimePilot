@@ -69,7 +69,8 @@ class TasksNotifier extends Notifier<List<Task>> {
     state = _sorted(_repo.getAll());
   }
 
-  Future<void> setStatus(Task task, String status) => save(_copy(task, status: status));
+  Future<void> setStatus(Task task, String status) =>
+      save(_copy(task, status: status));
 
   Future<void> remove(String id) async {
     await _repo.delete(id);
@@ -92,14 +93,16 @@ class TasksNotifier extends Notifier<List<Task>> {
     isDeleted: t.isDeleted,
   );
 
-  /// Alarm berbunyi pada deadlineUtc. Gagal menjadwalkan tidak boleh
-  /// menggagalkan penyimpanan tugas (offline-first).
+  /// Alarm berbunyi pada deadlineUtc hanya untuk tugas yang belum dimulai.
+  /// Gagal menjadwalkan tidak boleh menggagalkan penyimpanan tugas (offline-first).
   Future<void> _syncAlarm(Task t) async {
     try {
       final svc = ref.read(notificationServiceProvider);
       await svc.init();
       final id = taskAlarmId(t.id);
-      if (t.isDeleted || t.status == TaskStatus.done) {
+      if (t.isDeleted ||
+          t.status == TaskStatus.done ||
+          t.status == TaskStatus.inProgress) {
         await svc.cancel(id);
         return;
       }
@@ -119,3 +122,90 @@ class TasksNotifier extends Notifier<List<Task>> {
 final tasksProvider = NotifierProvider<TasksNotifier, List<Task>>(
   TasksNotifier.new,
 );
+
+// ------------------------------------------------------------ pencarian & filter (PBI-11)
+
+class TaskFilter {
+  const TaskFilter({
+    this.query = '',
+    this.status,
+    this.clientId,
+    this.currency,
+  });
+
+  final String query;
+  final String? status;
+  final String? clientId;
+  final String? currency;
+
+  bool get isActive =>
+      query.trim().isNotEmpty ||
+      status != null ||
+      clientId != null ||
+      currency != null;
+}
+
+/// Fungsi murni agar mudah diuji. Semua kriteria digabung dengan AND.
+List<Task> applyTaskFilter(
+  List<Task> tasks,
+  Map<String, Client> clients,
+  TaskFilter f,
+) {
+  final q = f.query.trim().toLowerCase();
+  return tasks.where((t) {
+    final c = clients[t.clientId];
+    if (f.status != null && t.status != f.status) return false;
+    if (f.clientId != null && t.clientId != f.clientId) return false;
+    if (f.currency != null && c?.currency != f.currency) return false;
+    if (q.isNotEmpty) {
+      final hay = '${t.title} ${c?.name ?? ''}'.toLowerCase();
+      if (!hay.contains(q)) return false;
+    }
+    return true;
+  }).toList();
+}
+
+class TaskFilterNotifier extends Notifier<TaskFilter> {
+  @override
+  TaskFilter build() => const TaskFilter();
+
+  void setQuery(String q) => state = TaskFilter(
+    query: q,
+    status: state.status,
+    clientId: state.clientId,
+    currency: state.currency,
+  );
+
+  void setStatus(String? s) => state = TaskFilter(
+    query: state.query,
+    status: s,
+    clientId: state.clientId,
+    currency: state.currency,
+  );
+
+  void setClient(String? c) => state = TaskFilter(
+    query: state.query,
+    status: state.status,
+    clientId: c,
+    currency: state.currency,
+  );
+
+  void setCurrency(String? c) => state = TaskFilter(
+    query: state.query,
+    status: state.status,
+    clientId: state.clientId,
+    currency: c,
+  );
+
+  void reset() => state = const TaskFilter();
+}
+
+final taskFilterProvider = NotifierProvider<TaskFilterNotifier, TaskFilter>(
+  TaskFilterNotifier.new,
+);
+
+final filteredTasksProvider = Provider<List<Task>>((ref) {
+  final tasks = ref.watch(tasksProvider);
+  final clients = {for (final c in ref.watch(clientsProvider)) c.id: c};
+  return applyTaskFilter(tasks, clients, ref.watch(taskFilterProvider));
+});

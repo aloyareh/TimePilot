@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -12,16 +11,24 @@ final notificationServiceProvider = Provider<NotificationService>(
   (ref) => NotificationService(),
 );
 
+/// Alarm/pengingat terjadwal (PBI-13). API ditulis untuk
+/// flutter_local_notifications 22.x (parameter bernama).
 class NotificationService {
   NotificationService([FlutterLocalNotificationsPlugin? plugin])
     : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _ready = false;
+  void Function(String? payload)? _onSelect;
 
+  // Pengaturan channel dikunci Android saat channel pertama dibuat.
+  // Jika kamu mengubah importance/suara, ganti channelId (atau hapus app) agar berlaku.
   static const channelId = 'task_alarm_v1';
   static const channelName = 'Alarm tugas';
 
+  /// Alarm baru mati setelah tantangan selesai (US-2): notifikasi tidak bisa
+  /// digeser (ongoing) dan tidak hilang saat diketuk (autoCancel false).
+  /// timeoutAfter = pengaman agar tidak berbunyi selamanya jika tantangan macet.
   static final _details = NotificationDetails(
     android: AndroidNotificationDetails(
       channelId,
@@ -32,8 +39,10 @@ class NotificationService {
       category: AndroidNotificationCategory.alarm,
       audioAttributesUsage: AudioAttributesUsage.alarm,
       fullScreenIntent: true,
-      autoCancel: true,
-      // FLAG_INSISTENT (0x4): suara berulang sampai notifikasi dibuka/dihapus.
+      autoCancel: false,
+      ongoing: true,
+      timeoutAfter: 10 * 60 * 1000,
+      // FLAG_INSISTENT (0x4): suara berulang sampai notifikasi dibatalkan.
       additionalFlags: Int32List.fromList(<int>[4]),
     ),
   );
@@ -43,7 +52,10 @@ class NotificationService {
         AndroidFlutterLocalNotificationsPlugin
       >();
 
+  /// Aman dipanggil berulang. [onSelect] hanya dipakai dari pemanggilan pertama.
+  /// Panggilan pertama dilakukan di MainApp dengan handler yang membuka halaman tugas.
   Future<void> init({void Function(String? payload)? onSelect}) async {
+    if (onSelect != null) _onSelect = onSelect;
     if (_ready) return;
     TimeService.init(); // memuat database zona waktu
     try {
@@ -56,9 +68,16 @@ class NotificationService {
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
-      onDidReceiveNotificationResponse: (r) => onSelect?.call(r.payload),
+      onDidReceiveNotificationResponse: (r) => _onSelect?.call(r.payload),
     );
     _ready = true;
+  }
+
+  /// Payload notifikasi yang meluncurkan app dari kondisi mati (null jika bukan).
+  Future<String?> launchPayload() async {
+    final d = await _plugin.getNotificationAppLaunchDetails();
+    if (d == null || !d.didNotificationLaunchApp) return null;
+    return d.notificationResponse?.payload;
   }
 
   Future<({bool notifications, bool exactAlarm})> requestPermissions() async {
@@ -72,6 +91,7 @@ class NotificationService {
     return (notifications: notif, exactAlarm: exact);
   }
 
+  /// Jadwalkan alarm pada instan [whenUtc]. Mengembalikan false jika sudah lewat.
   Future<bool> scheduleAt({
     required int id,
     required DateTime whenUtc,
@@ -85,6 +105,7 @@ class NotificationService {
       id: id,
       scheduledDate: when,
       notificationDetails: _details,
+      // alarmClock: setAlarmClock, tidak ditunda Doze; butuh izin alarm tepat.
       androidScheduleMode: AndroidScheduleMode.alarmClock,
       title: title,
       body: body,
