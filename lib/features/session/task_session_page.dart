@@ -10,6 +10,7 @@ import '../../data/repositories/profile_repository.dart';
 import '../tasks/task_providers.dart';
 import 'challenge_registry.dart';
 import 'session_providers.dart';
+import 'session_summary_page.dart';
 
 /// Pusat alur: alarm -> tantangan -> Start Work Session -> timer -> Stop.
 /// Dibuka dari ketukan notifikasi atau tombol Mulai di kartu tugas.
@@ -66,23 +67,12 @@ class TaskSessionPage extends ConsumerWidget {
     if (ok != true) return;
     final finished = await ref.read(sessionProvider.notifier).stop();
     if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sesi selesai'),
-        content: Text(
-          'Durasi: ${formatHms(Duration(seconds: finished.durationSeconds))}\n'
-          'Terlambat: ${finished.lateMinutes} menit',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
+    final client = ref.read(clientRepositoryProvider).getById(finished.clientId);
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => SessionSummaryPage(session: finished, client: client),
       ),
     );
-    if (context.mounted) Navigator.of(context).pop();
   }
 
   @override

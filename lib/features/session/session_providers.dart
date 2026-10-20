@@ -5,7 +5,9 @@ import '../../core/notifications/notification_service.dart';
 import '../../data/local/models/task.dart';
 import '../../data/local/models/work_session.dart';
 import '../../data/repositories/work_session_repository.dart';
+import '../blockchain/chain_repository.dart';
 import '../tasks/task_providers.dart';
+import 'session_money.dart';
 
 final workSessionRepositoryProvider = Provider<WorkSessionRepository>(
   (ref) => WorkSessionRepository(),
@@ -78,6 +80,19 @@ class SessionNotifier extends Notifier<WorkSession?> {
     );
     await _repo.save(finished);
     state = null;
+    // Catat ke blockchain (PBI-21). Kegagalan di sini tidak boleh membatalkan sesi.
+    try {
+      final client = ref.read(clientRepositoryProvider).getById(s.clientId);
+      final money = computeSessionMoney(
+        durationSeconds: finished.durationSeconds,
+        lateMinutes: finished.lateMinutes,
+        hourlyRate: client?.hourlyRate ?? 0,
+        currency: client?.currency ?? 'IDR',
+      );
+      await ref.read(chainProvider.notifier).addForSession(finished, money);
+    } catch (e) {
+      logChainError(e);
+    }
     ref.read(challengeClearedProvider.notifier).reset(s.taskId);
     if (markDone) {
       final task = ref.read(taskRepositoryProvider).getById(s.taskId);
