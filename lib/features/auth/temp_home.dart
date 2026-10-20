@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dev/alarm_spike_page.dart';
+import '../tasks/task_list_page.dart';
 import 'auth_controller.dart';
 import 'biometric_toggle_tile.dart';
 
@@ -23,6 +24,13 @@ class TempHome extends ConsumerWidget {
             subtitle: Text('@${user?.username ?? '-'}'),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.checklist),
+            title: const Text('Daftar tugas'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const TaskListPage()),
+            ),
+          ),
           const BiometricToggleTile(),
           ListTile(
             leading: const Icon(Icons.alarm),
