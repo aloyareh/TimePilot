@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../dev/alarm_spike_page.dart';
 import 'auth_controller.dart';
 import 'biometric_toggle_tile.dart';
 
@@ -23,6 +24,13 @@ class TempHome extends ConsumerWidget {
           ),
           const Divider(),
           const BiometricToggleTile(),
+          ListTile(
+            leading: const Icon(Icons.alarm),
+            title: const Text('Spike alarm (sementara)'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const AlarmSpikePage()),
+            ),
+          ),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Keluar'),
