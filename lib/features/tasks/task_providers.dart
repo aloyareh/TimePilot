@@ -136,14 +136,16 @@ class TasksNotifier extends Notifier<List<Task>> {
     ownerId: t.ownerId,
   );
 
-  /// Alarm berbunyi pada deadlineUtc. Gagal menjadwalkan tidak boleh
-  /// menggagalkan penyimpanan tugas (offline-first).
+  /// Alarm berbunyi pada deadlineUtc hanya untuk tugas yang belum dimulai.
+  /// Gagal menjadwalkan tidak boleh menggagalkan penyimpanan tugas (offline-first).
   Future<void> _syncAlarm(Task t) async {
     try {
       final svc = ref.read(notificationServiceProvider);
       await svc.init();
       final id = taskAlarmId(t.id);
-      if (t.isDeleted || t.status == TaskStatus.done) {
+      if (t.isDeleted ||
+          t.status == TaskStatus.done ||
+          t.status == TaskStatus.inProgress) {
         await svc.cancel(id);
         return;
       }
