@@ -5,10 +5,7 @@ import '../local/models/profile.dart';
 
 class ProfileRepository {
   Box<Profile> get _box => Hive.box<Profile>(HiveBoxes.profile);
-
   Future<void> save(Profile profile) => _box.put(profile.id, profile);
-
-  Profile? getCurrent() => _box.isEmpty ? null : _box.values.first;
-
+  Profile? getByUserId(String userId) => _box.get(userId);
   Future<void> clear() => _box.clear();
 }

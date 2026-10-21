@@ -6,7 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/env.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_gate.dart';
-import 'features/auth/temp_home.dart';
+import 'core/navigation/main_shell.dart';
+import 'features/profile/persona_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
-      home: const AuthGate(child: TempHome()),
+      home: const AuthGate(child: PersonaGate(child: MainShell())),
     );
   }
 }

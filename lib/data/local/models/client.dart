@@ -17,13 +17,18 @@ class Client {
   final double hourlyRate;
 
   @HiveField(4)
-  final String currency; 
+  final String currency;
 
   @HiveField(5)
   final DateTime updatedAt;
 
   @HiveField(6)
   final bool isDeleted;
+
+  /// ID pengguna pemilik klien ini. Data lama (sebelum field ini ada) bernilai
+  /// null dan tidak ditampilkan ke siapa pun.
+  @HiveField(7)
+  final String? ownerId;
 
   const Client({
     required this.id,
@@ -33,5 +38,17 @@ class Client {
     required this.currency,
     required this.updatedAt,
     this.isDeleted = false,
+    this.ownerId,
   });
+
+  Client withOwner(String ownerId) => Client(
+    id: id,
+    name: name,
+    timezoneId: timezoneId,
+    hourlyRate: hourlyRate,
+    currency: currency,
+    updatedAt: updatedAt,
+    isDeleted: isDeleted,
+    ownerId: ownerId,
+  );
 }

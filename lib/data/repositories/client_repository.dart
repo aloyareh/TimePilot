@@ -14,7 +14,9 @@ class ClientRepository {
     return client;
   }
 
-  List<Client> getAll() => _box.values.where((c) => !c.isDeleted).toList();
+  /// Hanya klien milik [ownerId] yang belum dihapus.
+  List<Client> getAll(String ownerId) =>
+      _box.values.where((c) => !c.isDeleted && c.ownerId == ownerId).toList();
 
   Future<void> delete(String id) async {
     final c = _box.get(id);
@@ -29,6 +31,7 @@ class ClientRepository {
         currency: c.currency,
         updatedAt: DateTime.now().toUtc(),
         isDeleted: true,
+        ownerId: c.ownerId,
       ),
     );
   }

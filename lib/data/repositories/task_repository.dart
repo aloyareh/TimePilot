@@ -14,7 +14,9 @@ class TaskRepository {
     return task;
   }
 
-  List<Task> getAll() => _box.values.where((t) => !t.isDeleted).toList();
+  /// Hanya tugas milik [ownerId] yang belum dihapus.
+  List<Task> getAll(String ownerId) =>
+      _box.values.where((t) => !t.isDeleted && t.ownerId == ownerId).toList();
 
   Future<void> delete(String id) async {
     final t = _box.get(id);
@@ -30,6 +32,7 @@ class TaskRepository {
         createdAt: t.createdAt,
         updatedAt: DateTime.now().toUtc(),
         isDeleted: true,
+        ownerId: t.ownerId,
       ),
     );
   }

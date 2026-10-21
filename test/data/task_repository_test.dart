@@ -55,7 +55,7 @@ void main() {
     await repo.delete('t1');
 
     expect(repo.getById('t1'), isNull);
-    expect(repo.getAll(), isEmpty);
+    expect(repo.getAll('u1'), isEmpty);
   });
 
   test('data tetap ada setelah box ditutup dan dibuka lagi', () async {

@@ -17,13 +17,13 @@ class Task {
   final String title;
 
   @HiveField(2)
-  final String clientId; 
+  final String clientId;
 
   @HiveField(3)
   final DateTime deadlineUtc;
 
   @HiveField(4)
-  final String status; 
+  final String status;
 
   @HiveField(5)
   final DateTime createdAt;
@@ -34,6 +34,10 @@ class Task {
   @HiveField(7)
   final bool isDeleted;
 
+  /// ID pengguna pemilik tugas. Data lama bernilai null dan tidak ditampilkan.
+  @HiveField(8)
+  final String? ownerId;
+
   const Task({
     required this.id,
     required this.title,
@@ -43,5 +47,18 @@ class Task {
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
+    this.ownerId,
   });
+
+  Task withOwner(String ownerId) => Task(
+    id: id,
+    title: title,
+    clientId: clientId,
+    deadlineUtc: deadlineUtc,
+    status: status,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    isDeleted: isDeleted,
+    ownerId: ownerId,
+  );
 }
