@@ -13,6 +13,10 @@ import 'features/auth/auth_gate.dart';
 import 'features/profile/persona_gate.dart';
 import 'features/session/task_session_page.dart';
 
+import 'data/local/models/profile.dart';
+import 'features/challenges/shake_challenge_page.dart';
+import 'features/session/challenge_registry.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveBoxes.init();
@@ -22,9 +26,8 @@ Future<void> main() async {
     publishableKey: Env.supabasePublishableKey,
   );
 
-  // Dev B: daftarkan halaman tantangan di sini (lihat challenge_registry.dart), mis.
-  // challengeBuilders[ChallengeType.shake] =
-  //     (context, difficulty) => ShakeChallengePage(difficulty: difficulty);
+  challengeBuilders[ChallengeType.shake] =
+    (context, difficulty) => ShakeChallengePage(difficulty: difficulty);
 
   runApp(const ProviderScope(child: MainApp()));
 }
