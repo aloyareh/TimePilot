@@ -9,6 +9,7 @@ import '../auth/biometric_toggle_tile.dart';
 import '../dev/alarm_spike_page.dart';
 import 'client_list_section.dart';
 import 'persona_setup_page.dart';
+import 'profile_avatar.dart';
 import 'profile_providers.dart';
 
 /// Tab Profile (PBI-07): info akun, persona (pekerjaan, zona waktu),
@@ -34,15 +35,7 @@ class ProfilePage extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      const CircleAvatar(
-                        radius: 28,
-                        backgroundColor: AppColors.navy,
-                        child: Icon(
-                          Icons.person_rounded,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
+                      const ProfileAvatar(radius: 32, editable: true),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(

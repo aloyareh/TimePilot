@@ -6,7 +6,6 @@ import '../../core/notifications/notification_service.dart';
 import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
 import '../../data/local/models/task.dart';
-import 'client_quick_add_dialog.dart';
 import 'task_providers.dart';
 
 /// Tambah/ubah tugas. Jadwal diisi dalam zona waktu KLIEN lalu disimpan sebagai UTC.
@@ -61,17 +60,6 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
       if (c.id == id) return c;
     }
     return null;
-  }
-
-  Future<void> _addClient() async {
-    final client = await showDialog<Client>(
-      context: context,
-      builder: (_) => const ClientQuickAddDialog(),
-    );
-    if (client == null) return;
-    await ref.read(clientsProvider.notifier).add(client);
-    if (!mounted) return;
-    setState(() => _clientId = client.id);
   }
 
   Future<void> _pickDate() async {
@@ -186,7 +174,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 key: ValueKey(_clientId),
-                initialValue: _clientId,
+                // Nilai hanya dipakai bila klien masih ada di daftar (klien
+                // bisa saja sudah dihapus dari Profile), kalau tidak dropdown error.
+                initialValue: clients.any((c) => c.id == _clientId)
+                    ? _clientId
+                    : null,
                 decoration: const InputDecoration(labelText: 'Klien'),
                 items: [
                   for (final c in clients)
@@ -197,15 +189,30 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                 ],
                 onChanged: (v) => setState(() => _clientId = v),
               ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: _addClient,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Klien baru'),
+              if (clients.isEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Belum ada klien. Tambahkan klien di tab Profile '
+                          '(menu User Persona), lalu kembali ke sini.',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 16),
               Text(
                 client == null
                     ? 'Jadwal (dalam zona waktu klien)'
