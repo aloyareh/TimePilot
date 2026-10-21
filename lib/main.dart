@@ -5,10 +5,12 @@ import 'package:time_pilot/data/local/hive_boxes.dart';
 
 import 'core/env.dart';
 import 'core/navigation.dart';
+import 'core/navigation/main_shell.dart';
 import 'core/notifications/notification_service.dart';
-import 'core/theme/app_theme.dart'; // lewati/ganti jika tema Dev B yang dipakai
+import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/auth_gate.dart';
+import 'features/profile/persona_gate.dart';
 import 'features/session/task_session_page.dart';
 
 Future<void> main() async {
@@ -51,8 +53,7 @@ class _MainAppState extends ConsumerState<MainApp> {
   Future<void> _initNotifications() async {
     final svc = ref.read(notificationServiceProvider);
     await svc.init(onSelect: _openTask);
-    final launched = await svc
-        .launchPayload(); // app dibuka dari ketukan notifikasi
+    final launched = await svc.launchPayload(); // app dibuka dari notifikasi
     if (launched != null) await _openTask(launched);
   }
 
@@ -89,7 +90,7 @@ class _MainAppState extends ConsumerState<MainApp> {
       navigatorKey: rootNavigatorKey,
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
-      home: const AuthGate(child: TempHome()),
+      home: const AuthGate(child: PersonaGate(child: MainShell())),
     );
   }
 }

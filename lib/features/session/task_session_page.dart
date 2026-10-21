@@ -6,7 +6,7 @@ import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
 import '../../data/local/models/profile.dart';
 import '../../data/local/models/task.dart';
-import '../../data/repositories/profile_repository.dart';
+import '../profile/profile_providers.dart';
 import '../tasks/task_providers.dart';
 import 'challenge_registry.dart';
 import 'session_providers.dart';
@@ -104,7 +104,7 @@ class TaskSessionPage extends ConsumerWidget {
     final runningElsewhere = active != null && !runningHere;
     final cleared = ref.watch(challengeClearedProvider).contains(taskId);
 
-    final profile = ProfileRepository().getCurrent();
+    final profile = ref.watch(profileProvider);
     final type = profile?.challengeType ?? ChallengeType.shake;
     final difficulty = profile?.challengeDifficulty ?? 1;
     final available = challengeBuilders.containsKey(type);
