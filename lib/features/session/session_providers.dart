@@ -6,6 +6,7 @@ import '../../data/local/models/task.dart';
 import '../../data/local/models/work_session.dart';
 import '../../data/repositories/work_session_repository.dart';
 import '../blockchain/chain_repository.dart';
+import '../profile/profile_providers.dart';
 import '../tasks/task_providers.dart';
 import 'session_money.dart';
 
@@ -35,10 +36,17 @@ String formatHms(Duration d) {
 class SessionNotifier extends Notifier<WorkSession?> {
   WorkSessionRepository get _repo => ref.read(workSessionRepositoryProvider);
 
+  /// Sesi yang berjalan hanya dicari milik pengguna yang sedang login:
+  /// WorkSession belum punya ownerId, jadi kepemilikan diturunkan dari tugasnya.
+  /// Memantau currentUserIdProvider agar state ikut berganti saat akun berganti.
   @override
   WorkSession? build() {
+    final uid = ref.watch(currentUserIdProvider);
+    if (uid == null) return null;
+    final tasks = ref.read(taskRepositoryProvider);
     for (final s in _repo.getAll()) {
-      if (s.endedAtUtc == null) return s;
+      if (s.endedAtUtc != null) continue;
+      if (tasks.getById(s.taskId)?.ownerId == uid) return s;
     }
     return null;
   }

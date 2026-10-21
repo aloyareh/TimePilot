@@ -5,12 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import '../../data/local/models/work_session.dart';
+import '../profile/profile_providers.dart';
 import '../session/session_money.dart';
 import 'chain.dart';
 
 /// Penyimpanan rantai di Hive (box 'chain'), satu entri JSON per blok.
 class ChainRepository {
-  static const _boxName = 'chain';
+  ChainRepository(this.userId);
+
+  /// Satu rantai per akun: kotak Hive dinamai dari ID pengguna.
+  final String userId;
+
+  String get _boxName => 'chain_${userId.replaceAll('-', '_')}';
 
   Future<Box<String>> _box() async => Hive.isBoxOpen(_boxName)
       ? Hive.box<String>(_boxName)
@@ -36,21 +42,26 @@ class ChainRepository {
   }
 }
 
-final chainRepositoryProvider = Provider<ChainRepository>(
-  (ref) => ChainRepository(),
-);
+/// null = belum login (tidak ada rantai).
+final chainRepositoryProvider = Provider<ChainRepository?>((ref) {
+  final uid = ref.watch(currentUserIdProvider);
+  return uid == null ? null : ChainRepository(uid);
+});
 
 class ChainNotifier extends AsyncNotifier<List<Block>> {
-  ChainRepository get _repo => ref.read(chainRepositoryProvider);
-
   @override
-  Future<List<Block>> build() => _repo.all();
+  Future<List<Block>> build() async {
+    final repo = ref.watch(chainRepositoryProvider);
+    return repo == null ? const <Block>[] : repo.all();
+  }
 
   /// Menambah blok untuk sesi yang selesai. Idempotent: sesi yang sama tidak
   /// dicatat dua kali.
   Future<Block> addForSession(WorkSession s, SessionMoney money) async {
+    final repo = ref.read(chainRepositoryProvider);
+    if (repo == null) throw StateError('Belum login.');
     await future; // pastikan build() awal selesai agar tidak menimpa state kita
-    final blocks = await _repo.all();
+    final blocks = await repo.all();
     for (final b in blocks) {
       if (b.sessionId == s.id) return b;
     }
@@ -65,13 +76,14 @@ class ChainNotifier extends AsyncNotifier<List<Block>> {
       currency: money.currency,
       netMinor: money.netMinor,
     );
-    await _repo.put(block);
+    await repo.put(block);
     state = AsyncData([...blocks, block]);
     return block;
   }
 
   Future<void> reload() async {
-    state = AsyncData(await _repo.all());
+    final repo = ref.read(chainRepositoryProvider);
+    state = AsyncData(repo == null ? const <Block>[] : await repo.all());
   }
 }
 
