@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/lock_screen.dart';
 import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
 import '../../data/local/models/profile.dart';
@@ -15,9 +16,12 @@ import 'session_summary_page.dart';
 /// Pusat alur: alarm -> tantangan -> Start Work Session -> timer -> Stop.
 /// Dibuka dari ketukan notifikasi atau tombol Mulai di kartu tugas.
 class TaskSessionPage extends ConsumerWidget {
-  const TaskSessionPage({super.key, required this.taskId});
+  const TaskSessionPage({super.key, required this.taskId, this.autoStart = false});
 
   final String taskId;
+
+  /// true bila dibuka dari alarm: tantangan langsung dimulai tanpa perlu ketukan.
+  final bool autoStart;
 
   Future<void> _runChallenge(
     BuildContext context,
@@ -32,6 +36,9 @@ class TaskSessionPage extends ConsumerWidget {
     );
     if (ok == true) {
       await ref.read(challengeClearedProvider.notifier).clear(taskId);
+      // Alarm dibuka di atas layar kunci: setelah tantangan selesai, minta buka
+      // kunci sebelum lanjut. Tidak berbuat apa-apa bila layar sudah terbuka.
+      await LockScreen.leave();
     }
   }
 
@@ -170,6 +177,11 @@ class TaskSessionPage extends ConsumerWidget {
       children.add(const Center(child: Text('Tugas ini sudah selesai.')));
     } else {
       if (!cleared) {
+        if (autoStart && available) {
+          children.add(
+            _RunOnce(onRun: () => _runChallenge(context, ref, type, difficulty)),
+          );
+        }
         children.add(
           Card(
             child: Padding(
@@ -259,4 +271,28 @@ class _ElapsedTimer extends StatelessWidget {
       },
     );
   }
+}
+
+
+/// Menjalankan [onRun] satu kali setelah frame pertama widget ini tampil.
+class _RunOnce extends StatefulWidget {
+  const _RunOnce({required this.onRun});
+
+  final VoidCallback onRun;
+
+  @override
+  State<_RunOnce> createState() => _RunOnceState();
+}
+
+class _RunOnceState extends State<_RunOnce> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onRun();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

@@ -118,7 +118,7 @@ class _MainAppState extends ConsumerState<MainApp> {
     }
     _pendingTaskId = null;
     nav.push(
-      MaterialPageRoute<void>(builder: (_) => TaskSessionPage(taskId: id)),
+      MaterialPageRoute<void>(builder: (_) => TaskSessionPage(taskId: id, autoStart: true)),
     );
   }
 
