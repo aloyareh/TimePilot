@@ -5,6 +5,8 @@ import '../../core/currency/currency_service.dart';
 import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
 import '../../data/local/models/task.dart';
+import '../blockchain/blockchain_page.dart';
+import '../earnings/earnings_page.dart';
 import '../session/task_session_page.dart';
 import 'task_form_page.dart';
 import 'task_providers.dart';
@@ -57,7 +59,25 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final notifier = ref.read(taskFilterProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tugas')),
+      appBar: AppBar(
+        title: const Text('Tugas'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.payments_outlined),
+            tooltip: 'Pendapatan',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const EarningsPage()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.link),
+            tooltip: 'Blockchain sesi',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const BlockchainPage()),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const TaskFormPage()),
