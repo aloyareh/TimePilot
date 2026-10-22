@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/currency/currency_service.dart';
 import 'chain.dart';
+import '../sync/sync_service.dart';
 import 'chain_repository.dart';
 
 String _short(String h) => h.length <= 12 ? h : '${h.substring(0, 6)}…${h.substring(h.length - 4)}';
@@ -19,6 +20,8 @@ class _BlockchainPageState extends ConsumerState<BlockchainPage> {
   bool? _checked;
   int? _badIndex;
   String? _demoNote;
+  String? _serverNote;
+  bool _serverBusy = false;
 
   void _verify(List<Block> blocks) {
     final bad = firstInvalidIndex(blocks);
@@ -44,6 +47,40 @@ class _BlockchainPageState extends ConsumerState<BlockchainPage> {
           ? 'Demo: manipulasi tidak terdeteksi (seharusnya tidak mungkin).'
           : 'Demo: durasi blok #$target diubah +10 menit di memori. '
               'Verifikasi menemukan blok #$bad rusak. Data asli tidak berubah.';
+    });
+  }
+
+  /// Membandingkan hash tiap blok dengan salinan di server (jangkar manipulasi).
+  Future<void> _checkServer(List<Block> blocks) async {
+    setState(() {
+      _serverBusy = true;
+      _serverNote = null;
+    });
+    String note;
+    try {
+      final c = await ref.read(syncServiceProvider).compareChain(blocks);
+      if (c.consistent) {
+        note = 'Cocok dengan server: ${c.serverCount} blok identik.';
+      } else {
+        final parts = <String>[];
+        if (c.mismatched.isNotEmpty) {
+          parts.add('hash berbeda di blok #${c.mismatched.join(', #')} (kemungkinan dimanipulasi)');
+        }
+        if (c.serverOnly.isNotEmpty) {
+          parts.add('blok #${c.serverOnly.join(', #')} ada di server tapi hilang di HP');
+        }
+        if (c.missingOnServer.isNotEmpty) {
+          parts.add('blok #${c.missingOnServer.join(', #')} belum terkirim ke server');
+        }
+        note = 'Tidak cocok dengan server: ${parts.join('; ')}.';
+      }
+    } catch (e) {
+      note = describeSyncError(e);
+    }
+    if (!mounted) return;
+    setState(() {
+      _serverNote = note;
+      _serverBusy = false;
     });
   }
 
@@ -103,6 +140,10 @@ class _BlockchainPageState extends ConsumerState<BlockchainPage> {
                         const SizedBox(height: 8),
                         Text(_demoNote!),
                       ],
+                      if (_serverNote != null) ...[
+                        const SizedBox(height: 8),
+                        Text(_serverNote!),
+                      ],
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
@@ -114,6 +155,10 @@ class _BlockchainPageState extends ConsumerState<BlockchainPage> {
                           OutlinedButton(
                             onPressed: () => _demoTamper(blocks),
                             child: const Text('Demo manipulasi'),
+                          ),
+                          OutlinedButton(
+                            onPressed: _serverBusy ? null : () => _checkServer(blocks),
+                            child: Text(_serverBusy ? 'Memeriksa…' : 'Cek ke server'),
                           ),
                         ],
                       ),

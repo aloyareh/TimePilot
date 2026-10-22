@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -7,6 +9,7 @@ import '../../data/local/models/work_session.dart';
 import '../../data/repositories/work_session_repository.dart';
 import '../blockchain/chain_repository.dart';
 import '../profile/profile_providers.dart';
+import '../sync/sync_service.dart';
 import '../tasks/task_providers.dart';
 import 'session_money.dart';
 
@@ -108,6 +111,8 @@ class SessionNotifier extends Notifier<WorkSession?> {
         await ref.read(tasksProvider.notifier).setStatus(task, TaskStatus.done);
       }
     }
+    // Kirim ke server di latar belakang (best-effort, gagal tidak memengaruhi sesi).
+    unawaited(ref.read(syncProvider.notifier).sync());
     return finished;
   }
 }
