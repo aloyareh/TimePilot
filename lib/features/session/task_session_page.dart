@@ -12,6 +12,7 @@ import '../tasks/task_providers.dart';
 import 'challenge_registry.dart';
 import 'session_providers.dart';
 import 'session_summary_page.dart';
+import '../../features/challenges/challenges_picker.dart';
 
 /// Pusat alur: alarm -> tantangan -> Start Work Session -> timer -> Stop.
 /// Dibuka dari ketukan notifikasi atau tombol Mulai di kartu tugas.
@@ -42,6 +43,7 @@ class TaskSessionPage extends ConsumerWidget {
     }
   }
 
+  
   Future<void> _start(BuildContext context, WidgetRef ref, Task task) async {
     try {
       await ref.read(sessionProvider.notifier).start(task);
@@ -112,7 +114,7 @@ class TaskSessionPage extends ConsumerWidget {
     final cleared = ref.watch(challengeClearedProvider).contains(taskId);
 
     final profile = ref.watch(profileProvider);
-    final type = profile?.challengeType ?? ChallengeType.shake;
+    final type = ref.watch(assignedChallengeProvider(taskId));
     final difficulty = profile?.challengeDifficulty ?? 1;
     final available = challengeBuilders.containsKey(type);
 

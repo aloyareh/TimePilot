@@ -16,6 +16,7 @@ import 'features/tasks/task_providers.dart';
 import 'features/session/task_session_page.dart';
 
 import 'data/local/models/profile.dart';
+import 'features/challenges/balance_challenge_page.dart';
 import 'features/challenges/shake_challenge_page.dart';
 import 'features/session/challenge_registry.dart';
 
@@ -28,11 +29,13 @@ Future<void> main() async {
     publishableKey: Env.supabasePublishableKey,
   );
 
-  challengeBuilders[ChallengeType.shake] =
-    (context, difficulty) => ShakeChallengePage(difficulty: difficulty);
-
+  challengeBuilders[ChallengeType.shake] = (context, difficulty) =>
+      ShakeChallengePage(difficulty: difficulty);
+  challengeBuilders[ChallengeType.balance] = (context, difficulty) =>
+      BalanceChallengePage(difficulty: difficulty);
   runApp(const ProviderScope(child: MainApp()));
 }
+
 
 class MainApp extends ConsumerStatefulWidget {
   const MainApp({super.key});
