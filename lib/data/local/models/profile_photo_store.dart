@@ -34,7 +34,7 @@ class ProfilePhotoStore {
     return files;
   }
 
-  static String _name(File f) => f.path.split(Platform.pathSeparator).last;
+  static String _name(File f) => f.path.split(RegExp(r'[\\/]')).last;
 
   /// READ: foto terbaru milik [userId], atau null bila belum ada.
   Future<File?> find(String userId) async {
@@ -46,11 +46,11 @@ class ProfilePhotoStore {
   Future<File> save(String userId, String sourcePath) async {
     final dir = await _dir();
     final dest = File(
-      '${dir.path}/$userId-${DateTime.now().millisecondsSinceEpoch}.jpg',
+      '${dir.path}${Platform.pathSeparator}$userId-${DateTime.now().millisecondsSinceEpoch}.jpg',
     );
     await File(sourcePath).copy(dest.path);
     for (final old in await _filesOf(userId)) {
-      if (old.path != dest.path) {
+      if (_name(old) != _name(dest)) {
         await old.delete();
       }
     }
