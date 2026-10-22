@@ -19,6 +19,7 @@ import 'data/local/models/profile.dart';
 import 'features/challenges/balance_challenge_page.dart';
 import 'features/challenges/shake_challenge_page.dart';
 import 'features/session/challenge_registry.dart';
+import 'features/sync/sync_widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -131,7 +132,7 @@ class _MainAppState extends ConsumerState<MainApp> {
       navigatorKey: rootNavigatorKey,
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
-      home: const AuthGate(child: PersonaGate(child: MainShell())),
+      home: AuthGate(child:  SyncLifecycle(child: PersonaGate(child: MainShell()))),
     );
   }
 }

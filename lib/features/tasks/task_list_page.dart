@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:time_pilot/features/sync/sync_widgets.dart';
 
 import '../../core/currency/currency_service.dart';
 import '../../core/time/time_service.dart';
@@ -63,6 +64,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       appBar: AppBar(
         title: const Text('Tugas'),
         actions: [
+          const SyncStatusButton(),
           IconButton(
             icon: const Icon(Icons.payments_outlined),
             tooltip: 'Pendapatan',
@@ -76,7 +78,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const BlockchainPage()),
             ),
-          ),
+          ), 
+          
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
