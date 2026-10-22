@@ -11,6 +11,8 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/profile/persona_gate.dart';
+import 'features/profile/profile_providers.dart';
+import 'features/tasks/task_providers.dart';
 import 'features/session/task_session_page.dart';
 
 import 'data/local/models/profile.dart';
@@ -43,20 +45,53 @@ class _MainAppState extends ConsumerState<MainApp> {
   /// Tujuan dari ketukan notifikasi yang menunggu sampai user sudah masuk.
   String? _pendingTaskId;
 
+  /// Selesai saat NotificationService siap. Pendengar akun menunggu ini supaya
+  /// init() pertama selalu membawa handler ketukan notifikasi.
+  late final Future<void> _notifReady;
+
   @override
   void initState() {
     super.initState();
+    _notifReady = ref
+        .read(notificationServiceProvider)
+        .init(onSelect: _openTask)
+        .catchError((Object _) {});
     // Saat login selesai (mis. lewat biometrik), buka tujuan yang tertunda.
     ref.listenManual(authControllerProvider, (_, next) {
       if (next.value != null) _flushPending();
     });
-    _initNotifications();
+    // Alarm milik satu akun tidak boleh berbunyi saat akun lain / tidak ada
+    // yang login: batal semua saat keluar, jadwalkan ulang milik akun yang masuk.
+    ref.listenManual<String?>(
+      currentUserIdProvider,
+      (prev, next) {
+        _onUserChanged(prev, next);
+      },
+      fireImmediately: true,
+    );
+    _handleLaunch();
   }
 
-  Future<void> _initNotifications() async {
+  Future<void> _onUserChanged(String? prev, String? next) async {
+    await _notifReady;
     final svc = ref.read(notificationServiceProvider);
-    await svc.init(onSelect: _openTask);
-    final launched = await svc.launchPayload(); // app dibuka dari notifikasi
+    if (next == null) {
+      if (prev != null) {
+        try {
+          await svc.cancelAll();
+        } catch (_) {}
+      }
+      return;
+    }
+    final tasks = ref.read(tasksProvider);
+    await ref.read(tasksProvider.notifier).resyncAlarms(tasks);
+  }
+
+  Future<void> _handleLaunch() async {
+    await _notifReady;
+    final launched = await ref
+        .read(notificationServiceProvider)
+        .launchPayload(); // app dibuka dari notifikasi
     if (launched != null) await _openTask(launched);
   }
 

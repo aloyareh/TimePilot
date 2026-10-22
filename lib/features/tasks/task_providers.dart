@@ -136,6 +136,29 @@ class TasksNotifier extends Notifier<List<Task>> {
     ownerId: t.ownerId,
   );
 
+  /// Menjadwalkan ulang alarm tugas milik pengguna yang baru masuk (dipanggil dari
+  /// main.dart saat akun berganti). Hanya tugas todo yang deadline-nya belum
+  /// lewat; tidak membatalkan apa pun supaya alarm yang sedang berbunyi
+  /// (mis. app dibuka dari ketukan notifikasi) tidak ikut mati.
+  Future<void> resyncAlarms(List<Task> tasks) async {
+    try {
+      final svc = ref.read(notificationServiceProvider);
+      await svc.init();
+      final now = DateTime.now().toUtc();
+      for (final t in tasks) {
+        if (t.status != TaskStatus.todo || !t.deadlineUtc.isAfter(now)) continue;
+        final client = ref.read(clientRepositoryProvider).getById(t.clientId);
+        await svc.scheduleAt(
+          id: taskAlarmId(t.id),
+          whenUtc: t.deadlineUtc,
+          title: t.title,
+          body: client == null ? null : 'Klien: ${client.name}',
+          payload: t.id,
+        );
+      }
+    } catch (_) {}
+  }
+
   /// Alarm berbunyi pada deadlineUtc hanya untuk tugas yang belum dimulai.
   /// Gagal menjadwalkan tidak boleh menggagalkan penyimpanan tugas (offline-first).
   Future<void> _syncAlarm(Task t) async {
