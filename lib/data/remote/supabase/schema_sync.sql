@@ -313,3 +313,62 @@ grant execute on function public.app_sync_push_sessions(text, jsonb)       to an
 grant execute on function public.app_sync_pull_sessions(text, timestamptz) to anon, authenticated;
 grant execute on function public.app_sync_push_blocks(text, jsonb)         to anon, authenticated;
 grant execute on function public.app_sync_pull_blocks(text)                to anon, authenticated;
+
+-- ================================================================ profil dan klien (PBI-22, bagian 2)
+-- Tabel profiles dan clients, serta app_save_profile / app_save_client / app_delete_client,
+-- dibuat Dev B (PBI-07). Di sini hanya ditambah fungsi TARIK supaya perangkat baru
+-- bisa memulihkan persona dan klien. Klien yang dihapus ikut dikirim (is_deleted = true)
+-- agar penghapusan di satu HP sampai ke HP lain.
+
+create or replace function public.app_sync_pull_profile(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid uuid := private.session_user_id(p_token);
+begin
+  if v_uid is null then raise exception 'SESSION_INVALID'; end if;
+  -- null bila pengguna belum pernah menyimpan persona
+  return (
+    select jsonb_build_object(
+             'role', p.role, 'home_timezone', p.home_timezone,
+             'main_currency', p.main_currency,
+             'work_start_minutes', p.work_start_minutes,
+             'work_end_minutes', p.work_end_minutes,
+             'challenge_type', p.challenge_type,
+             'challenge_difficulty', p.challenge_difficulty,
+             'updated_at', p.updated_at)
+    from profiles p
+    where p.user_id = v_uid
+  );
+end
+$$;
+
+create or replace function public.app_sync_pull_clients(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid uuid := private.session_user_id(p_token);
+begin
+  if v_uid is null then raise exception 'SESSION_INVALID'; end if;
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'id', c.id, 'name', c.name, 'timezone_id', c.timezone_id,
+             'hourly_rate', c.hourly_rate, 'currency', c.currency,
+             'is_deleted', c.is_deleted, 'updated_at', c.updated_at)
+           order by c.updated_at)
+    from clients c
+    where c.user_id = v_uid
+  ), '[]'::jsonb);
+end
+$$;
+
+revoke all on function public.app_sync_pull_profile(text) from public;
+revoke all on function public.app_sync_pull_clients(text) from public;
+grant execute on function public.app_sync_pull_profile(text) to anon, authenticated;
+grant execute on function public.app_sync_pull_clients(text) to anon, authenticated;

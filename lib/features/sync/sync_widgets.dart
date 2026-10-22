@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'sync_service.dart';
 
 /// Membungkus layar utama: sinkron otomatis saat masuk dan saat aplikasi kembali
-/// dibuka (paling cepat tiap 30 detik). Letakkan di dalam AuthGate.
+/// dibuka (paling cepat tiap 30 detik). Selama app terbuka, ada pengecek tiap 20 detik:
+/// bila sinkron terakhir gagal (mis. offline) ia mencoba lagi, bila tidak ia sinkron
+/// ulang tiap 2 menit. Letakkan di dalam AuthGate.
 class SyncLifecycle extends ConsumerStatefulWidget {
   const SyncLifecycle({super.key, required this.child});
 
@@ -17,23 +21,43 @@ class SyncLifecycle extends ConsumerStatefulWidget {
 class _SyncLifecycleState extends ConsumerState<SyncLifecycle>
     with WidgetsBindingObserver {
   DateTime? _last;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _auto());
+    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _tick());
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _auto();
+    _foreground = state == AppLifecycleState.resumed;
+    if (_foreground) _auto();
+  }
+
+  bool _foreground = true;
+
+  void _tick() {
+    if (!_foreground) return;
+    final s = ref.read(syncProvider);
+    if (s.syncing) return;
+    final age = s.lastSyncAt == null
+        ? const Duration(days: 1)
+        : DateTime.now().difference(s.lastSyncAt!);
+    // Gagal terakhir kali (offline): coba lagi tiap tick. Selain itu tiap 2 menit.
+    if (s.error != null || age >= const Duration(minutes: 2)) {
+      _last = DateTime.now();
+      ref.read(syncProvider.notifier).sync();
+    }
   }
 
   void _auto() {

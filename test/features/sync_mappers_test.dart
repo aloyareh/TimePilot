@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:time_pilot/data/local/models/client.dart';
 import 'package:time_pilot/data/local/models/task.dart';
 import 'package:time_pilot/data/local/models/work_session.dart';
 import 'package:time_pilot/features/blockchain/chain.dart';
@@ -145,6 +146,101 @@ void main() {
       final c = diffChains([b0], [b0, b1, b2]);
       expect(c.serverOnly, [1, 2]);
       expect(c.consistent, isFalse);
+    });
+  });
+
+  group('profileFromJson / clientFromJson', () {
+    test('profil dari server (nilai numerik dan zona waktu)', () {
+      final p = profileFromJson({
+        'role': 'Web Developer',
+        'home_timezone': 'Asia/Jakarta',
+        'main_currency': 'IDR',
+        'work_start_minutes': 540,
+        'work_end_minutes': 1020,
+        'challenge_type': 'shake',
+        'challenge_difficulty': 2,
+        'updated_at': '2026-10-22T01:00:00+00:00',
+      }, 'u1');
+      expect(p.id, 'u1');
+      expect(p.role, 'Web Developer');
+      expect(p.workEndMinutes, 1020);
+      expect(p.challengeDifficulty, 2);
+    });
+
+    test('klien dari server: tarif numeric bisa int atau double', () {
+      Client c(num rate) => clientFromJson({
+        'id': 'c1',
+        'name': 'Acme',
+        'timezone_id': 'Europe/London',
+        'hourly_rate': rate,
+        'currency': 'GBP',
+        'is_deleted': false,
+        'updated_at': '2026-10-22T01:00:00+00:00',
+      }, 'u1');
+      expect(c(20).hourlyRate, 20.0);
+      expect(c(12.5).hourlyRate, 12.5);
+      expect(c(20).ownerId, 'u1');
+    });
+  });
+
+  group('planClientPush', () {
+    final t0 = DateTime.utc(2026, 10, 22, 1);
+    Client mk(String id, DateTime at, {bool deleted = false}) => Client(
+      id: id,
+      name: id,
+      timezoneId: 'Asia/Jakarta',
+      hourlyRate: 10,
+      currency: 'IDR',
+      updatedAt: at,
+      isDeleted: deleted,
+      ownerId: 'u1',
+    );
+
+    test('klien baru (belum di server) dikirim', () {
+      final p = planClientPush([mk('c1', t0)], {}, {});
+      expect(p.save.map((c) => c.id), ['c1']);
+    });
+
+    test('lokal lebih baru dikirim; sama atau lebih lama tidak', () {
+      final remote = {'c1': t0, 'c2': t0, 'c3': t0};
+      final p = planClientPush([
+        mk('c1', t0.add(const Duration(minutes: 1))),
+        mk('c2', t0),
+        mk('c3', t0.subtract(const Duration(minutes: 1))),
+      ], remote, {});
+      expect(p.save.map((c) => c.id), ['c1']);
+    });
+
+    test('penghapusan lokal yang lebih baru memanggil hapus di server', () {
+      final p = planClientPush(
+        [mk('c1', t0.add(const Duration(minutes: 1)), deleted: true)],
+        {'c1': t0},
+        {},
+      );
+      expect(p.deleteIds, ['c1']);
+      expect(p.save, isEmpty);
+    });
+
+    test('sudah terhapus di server atau tidak pernah ada: tidak ada aksi', () {
+      final p = planClientPush(
+        [
+          mk('c1', t0.add(const Duration(minutes: 1)), deleted: true),
+          mk('c2', t0, deleted: true),
+        ],
+        {'c1': t0},
+        {'c1'},
+      );
+      expect(p.deleteIds, isEmpty);
+      expect(p.save, isEmpty);
+    });
+
+    test('server lebih baru dari penghapusan lokal: tidak menghapus', () {
+      final p = planClientPush(
+        [mk('c1', t0, deleted: true)],
+        {'c1': t0.add(const Duration(minutes: 5))},
+        {},
+      );
+      expect(p.deleteIds, isEmpty);
     });
   });
 }

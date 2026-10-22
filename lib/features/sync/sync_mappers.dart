@@ -1,3 +1,5 @@
+import '../../data/local/models/client.dart';
+import '../../data/local/models/profile.dart';
 import '../../data/local/models/task.dart';
 import '../../data/local/models/work_session.dart';
 import '../blockchain/chain.dart';
@@ -109,4 +111,62 @@ ChainCheck diffChains(List<Block> local, List<Block> server) {
     missingOnServer: missing,
     serverOnly: serverOnly,
   );
+}
+
+// ------------------------------------------------------------ profil dan klien
+
+Profile profileFromJson(Map<String, dynamic> j, String userId) => Profile(
+  id: userId,
+  role: j['role'] as String,
+  homeTimezone: j['home_timezone'] as String,
+  mainCurrency: j['main_currency'] as String,
+  workStartMinutes: (j['work_start_minutes'] as num).toInt(),
+  workEndMinutes: (j['work_end_minutes'] as num).toInt(),
+  challengeType: j['challenge_type'] as String,
+  challengeDifficulty: (j['challenge_difficulty'] as num).toInt(),
+  updatedAt: DateTime.parse(j['updated_at'] as String).toUtc(),
+);
+
+Client clientFromJson(Map<String, dynamic> j, String ownerId) => Client(
+  id: j['id'] as String,
+  name: j['name'] as String,
+  timezoneId: j['timezone_id'] as String,
+  hourlyRate: (j['hourly_rate'] as num).toDouble(),
+  currency: j['currency'] as String,
+  updatedAt: DateTime.parse(j['updated_at'] as String).toUtc(),
+  isDeleted: (j['is_deleted'] as bool?) ?? false,
+  ownerId: ownerId,
+);
+
+/// Rencana dorong klien lokal ke server. Server (app_save_client) menimpa tanpa
+/// memeriksa waktu, jadi keputusan "siapa lebih baru" dibuat di sini SETELAH
+/// data server ditarik: hanya klien lokal yang LEBIH BARU dari versi server
+/// (atau belum ada di server) yang dikirim.
+class ClientPushPlan {
+  const ClientPushPlan({required this.save, required this.deleteIds});
+
+  final List<Client> save;
+  final List<String> deleteIds;
+}
+
+ClientPushPlan planClientPush(
+  List<Client> localOwned,
+  Map<String, DateTime> remoteUpdatedAt,
+  Set<String> remoteDeleted,
+) {
+  final save = <Client>[];
+  final deleteIds = <String>[];
+  for (final c in localOwned) {
+    final r = remoteUpdatedAt[c.id];
+    if (c.isDeleted) {
+      // Hapus di server hanya jika server masih menyimpannya sebagai aktif
+      // dan penghapusan lokal lebih baru.
+      if (r != null && !remoteDeleted.contains(c.id) && c.updatedAt.isAfter(r)) {
+        deleteIds.add(c.id);
+      }
+    } else if (r == null || c.updatedAt.isAfter(r)) {
+      save.add(c);
+    }
+  }
+  return ClientPushPlan(save: save, deleteIds: deleteIds);
 }

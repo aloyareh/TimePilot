@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -5,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/notifications/notification_service.dart';
 import '../../data/local/hive_boxes.dart';
+import '../../data/local/models/client.dart';
+import '../../data/local/models/profile.dart';
 import '../../data/local/models/task.dart';
 import '../../data/local/models/work_session.dart';
 import '../../data/remote/session_storage.dart';
@@ -30,6 +34,7 @@ class SyncResult {
     this.pulledTasks = 0,
     this.pulledSessions = 0,
     this.pulledBlocks = 0,
+    this.pulledPersona = 0,
     this.chainConflicts = const [],
     this.staleAlarmTaskIds = const [],
   });
@@ -41,6 +46,9 @@ class SyncResult {
   final int pulledSessions;
   final int pulledBlocks;
 
+  /// Profil + klien yang diterima dari server.
+  final int pulledPersona;
+
   /// Blok lokal yang berbeda dengan salinan server (kemungkinan manipulasi).
   final List<int> chainConflicts;
 
@@ -48,7 +56,7 @@ class SyncResult {
   final List<String> staleAlarmTaskIds;
 
   int get pushed => pushedTasks + pushedSessions + pushedBlocks;
-  int get pulled => pulledTasks + pulledSessions + pulledBlocks;
+  int get pulled => pulledTasks + pulledSessions + pulledBlocks + pulledPersona;
 }
 
 /// Sinkronisasi local-first (PBI-22): Hive = sumber utama, Supabase = salinan online.
@@ -78,7 +86,9 @@ class SyncService {
 
   Future<dynamic> _rpc(String fn, Map<String, dynamic> params) async {
     try {
-      return await _client.rpc(fn, params: params);
+      return await _client
+          .rpc(fn, params: params)
+          .timeout(const Duration(seconds: 12));
     } on PostgrestException catch (e) {
       throw SyncException(e.message);
     } catch (_) {
@@ -94,6 +104,9 @@ class SyncService {
     if (token == null) throw const SyncException('SESSION_INVALID');
     final meta = await _meta();
     String k(String name) => '$uid:$name';
+
+    // Profil dan klien dulu, supaya tugas yang ditarik langsung menemukan kliennya.
+    final pulledPersona = await _syncPersona(uid, token);
 
     // ------------------------------------------------------------ tugas: dorong
     final tasksBox = Hive.box<Task>(HiveBoxes.tasks);
@@ -230,9 +243,83 @@ class SyncService {
       pulledTasks: pulledTasks,
       pulledSessions: pulledSessions,
       pulledBlocks: pulledBlocks,
+      pulledPersona: pulledPersona,
       chainConflicts: conflicts,
       staleAlarmTaskIds: staleAlarms,
     );
+  }
+
+  /// Profil dan klien: tarik dulu, terapkan yang lebih baru (last-write-wins), lalu
+  /// dorong hanya yang lokal lebih baru. Memakai RPC buatan Dev B untuk menulis
+  /// (app_save_profile, app_save_client, app_delete_client). Mengembalikan jumlah
+  /// baris yang diterima dari server.
+  Future<int> _syncPersona(String uid, String token) async {
+    var pulled = 0;
+
+    // ---- profil
+    final profileBox = Hive.box<Profile>(HiveBoxes.profile);
+    final rawProfile = await _rpc('app_sync_pull_profile', {'p_token': token});
+    final remoteProfile = rawProfile == null
+        ? null
+        : profileFromJson(rawProfile as Map<String, dynamic>, uid);
+    final localProfile = profileBox.get(uid);
+    if (remoteProfile != null &&
+        shouldApplyRemote(localProfile?.updatedAt, remoteProfile.updatedAt)) {
+      await profileBox.put(uid, remoteProfile);
+      pulled++;
+    } else if (localProfile != null &&
+        localProfile.role.trim().isNotEmpty &&
+        (remoteProfile == null ||
+            localProfile.updatedAt.isAfter(remoteProfile.updatedAt))) {
+      await _rpc('app_save_profile', {
+        'p_token': token,
+        'p_role': localProfile.role,
+        'p_home_timezone': localProfile.homeTimezone,
+        'p_main_currency': localProfile.mainCurrency,
+        'p_work_start_minutes': localProfile.workStartMinutes,
+        'p_work_end_minutes': localProfile.workEndMinutes,
+        'p_challenge_type': localProfile.challengeType,
+        'p_challenge_difficulty': localProfile.challengeDifficulty,
+        'p_updated_at': localProfile.updatedAt.toUtc().toIso8601String(),
+      });
+    }
+
+    // ---- klien
+    final clientBox = Hive.box<Client>(HiveBoxes.clients);
+    final remoteUpdated = <String, DateTime>{};
+    final remoteDeleted = <String>{};
+    for (final row in _rows(await _rpc('app_sync_pull_clients', {'p_token': token}))) {
+      final remote = clientFromJson(row, uid);
+      remoteUpdated[remote.id] = remote.updatedAt;
+      if (remote.isDeleted) remoteDeleted.add(remote.id);
+      final local = clientBox.get(remote.id);
+      if (local != null && local.ownerId != uid) continue;
+      if (local == null && remote.isDeleted) continue;
+      if (shouldApplyRemote(local?.updatedAt, remote.updatedAt)) {
+        await clientBox.put(remote.id, remote);
+        pulled++;
+      }
+    }
+    final plan = planClientPush(
+      clientBox.values.where((c) => c.ownerId == uid).toList(),
+      remoteUpdated,
+      remoteDeleted,
+    );
+    for (final c in plan.save) {
+      await _rpc('app_save_client', {
+        'p_token': token,
+        'p_id': c.id,
+        'p_name': c.name,
+        'p_timezone_id': c.timezoneId,
+        'p_hourly_rate': c.hourlyRate,
+        'p_currency': c.currency,
+        'p_updated_at': c.updatedAt.toUtc().toIso8601String(),
+      });
+    }
+    for (final id in plan.deleteIds) {
+      await _rpc('app_delete_client', {'p_token': token, 'p_id': id});
+    }
+    return pulled;
   }
 
   /// Membandingkan rantai lokal dengan salinan server (untuk tombol "Cek ke server").
@@ -285,7 +372,9 @@ class SyncNotifier extends Notifier<SyncState> {
     try {
       final r = await ref.read(syncServiceProvider).run(uid);
       if (ref.read(currentUserIdProvider) != uid) return; // akun berganti saat sinkron
-      if (r.pulledTasks > 0 || r.pulledSessions > 0 || r.pulledBlocks > 0) {
+      if (r.pulled > 0) {
+        ref.invalidate(profileProvider);
+        ref.invalidate(clientsProvider);
         ref.invalidate(tasksProvider);
         ref.invalidate(sessionProvider);
         ref.invalidate(chainProvider);
