@@ -4,6 +4,8 @@ class Env {
     'SUPABASE_PUBLISHABLE_KEY',
   );
 
+  static const geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+
   static void assertConfigured() {
     if (supabaseUrl.isEmpty || supabasePublishableKey.isEmpty) {
       throw StateError(

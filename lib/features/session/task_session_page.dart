@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/lock_screen.dart';
 import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
-import '../../data/local/models/profile.dart';
 import '../../data/local/models/task.dart';
 import '../profile/profile_providers.dart';
 import '../tasks/task_providers.dart';

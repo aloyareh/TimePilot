@@ -6,6 +6,7 @@ import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
 import '../../data/local/models/task.dart';
 import '../blockchain/blockchain_page.dart';
+import '../cafes/cafe_entry_card.dart';
 import '../earnings/earnings_page.dart';
 import '../session/task_session_page.dart';
 import 'task_form_page.dart';
@@ -79,14 +80,15 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const TaskFormPage()),
-        ),
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const TaskFormPage())),
         icon: const Icon(Icons.add),
         label: const Text('Tugas baru'),
       ),
       body: Column(
         children: [
+          const CafeEntryCard(),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: Column(
@@ -120,12 +122,18 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       onChanged: notifier.setStatus,
                       items: const [
                         DropdownMenuItem(value: null, child: Text('Semua')),
-                        DropdownMenuItem(value: TaskStatus.todo, child: Text('Belum')),
+                        DropdownMenuItem(
+                          value: TaskStatus.todo,
+                          child: Text('Belum'),
+                        ),
                         DropdownMenuItem(
                           value: TaskStatus.inProgress,
                           child: Text('Berjalan'),
                         ),
-                        DropdownMenuItem(value: TaskStatus.done, child: Text('Selesai')),
+                        DropdownMenuItem(
+                          value: TaskStatus.done,
+                          child: Text('Selesai'),
+                        ),
                       ],
                     ),
                     _dropdown(
@@ -133,7 +141,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       value: filter.clientId,
                       onChanged: notifier.setClient,
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Semua')),
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Semua'),
+                        ),
                         for (final c in clients)
                           DropdownMenuItem(value: c.id, child: Text(c.name)),
                       ],
@@ -143,7 +154,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       value: filter.currency,
                       onChanged: notifier.setCurrency,
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Semua')),
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Semua'),
+                        ),
                         for (final c in Currencies.all)
                           DropdownMenuItem(value: c, child: Text(c)),
                       ],
@@ -234,7 +248,8 @@ class _TaskCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final done = task.status == TaskStatus.done;
     final running = task.status == TaskStatus.inProgress;
-    final overdue = task.status == TaskStatus.todo &&
+    final overdue =
+        task.status == TaskStatus.todo &&
         task.deadlineUtc.isBefore(DateTime.now().toUtc());
     final clientZone = client?.timezoneId ?? homeZone;
     final dual = TimeService.dual(
