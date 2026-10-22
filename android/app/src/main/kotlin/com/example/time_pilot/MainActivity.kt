@@ -16,8 +16,9 @@ import io.flutter.plugin.common.MethodChannel
  * dan tampil di atas layar kunci. Agar app tidak "menempel" di atas layar kunci
  * pada pemakaian biasa:
  *  - alarmMode = true bila aktivitas dibuka saat HP terkunci (alarm).
- *  - Saat layar mati di luar alarmMode, task dipindah ke belakang, sehingga layar
- *    kunci muncul normal saat HP dibangunkan.
+ *  - Saat layar mati di luar alarmMode, flag showWhenLocked/turnScreenOn dimatikan
+ *    sementara: layar kunci muncul normal dan setelah dibuka kunci pengguna kembali
+ *    ke app yang tadi terbuka. Flag dinyalakan lagi saat alarm datang (onNewIntent).
  *  - Setelah tantangan alarm selesai, Dart memanggil "leave": minta buka kunci;
  *    bila dibatalkan, task disembunyikan di belakang layar kunci.
  */
@@ -26,7 +27,13 @@ class MainActivity : FlutterFragmentActivity() {
 
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (!alarmMode) moveTaskToBack(true)
+            if (alarmMode) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(false)
+                setTurnScreenOn(false)
+            } else {
+                moveTaskToBack(true)
+            }
         }
     }
 
@@ -46,12 +53,14 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         alarmMode = isLocked()
+        allowOverLockScreen()
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         alarmMode = isLocked()
+        allowOverLockScreen()
     }
 
     override fun onDestroy() {
@@ -60,6 +69,13 @@ class MainActivity : FlutterFragmentActivity() {
         } catch (_: Exception) {
         }
         super.onDestroy()
+    }
+
+    private fun allowOverLockScreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
     }
 
     private fun isLocked(): Boolean {
