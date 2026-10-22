@@ -129,7 +129,7 @@ class CafeRecommendationPage extends ConsumerWidget {
                 color: AppColors.navInactive,
                 title: 'Belum ada rekomendasi',
                 body:
-                    'AI belum menemukan tempat yang cocok di sekitar lokasimu.',
+                    'Tidak ada kafe atau coworking bernama dalam radius 1,5 km di data peta.',
                 actions: [
                   FilledButton(
                     onPressed: notifier.fetch,
@@ -145,10 +145,11 @@ class CafeRecommendationPage extends ConsumerWidget {
               itemBuilder: (context, i) {
                 if (i == 0) {
                   return Text(
-                    'Perkiraan AI untuk '
+                    'Tempat dari OpenStreetMap di sekitar '
                     '${result.latitude.toStringAsFixed(4)}, '
-                    '${result.longitude.toStringAsFixed(4)}. '
-                    'Cek ulang di Google Maps sebelum berangkat.',
+                    '${result.longitude.toStringAsFixed(4)}'
+                    '${result.aiError == null ? ', catatan oleh AI' : ' (catatan AI tidak tersedia)'}. '
+                    'Jam buka dan WiFi berasal dari data OSM, cek ulang sebelum berangkat.',
                     style: Theme.of(context).textTheme.bodySmall,
                   );
                 }

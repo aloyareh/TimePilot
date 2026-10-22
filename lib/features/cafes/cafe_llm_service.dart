@@ -10,79 +10,76 @@ class Cafe {
     required this.type,
     required this.area,
     required this.note,
+    this.latitude,
+    this.longitude,
   });
 
   final String name;
   final String type;
   final String area;
   final String note;
+  final double? latitude;
+  final double? longitude;
 
-  factory Cafe.fromJson(Map<String, dynamic> j) => Cafe(
-    name: (j['name'] ?? '').toString().trim(),
-    type: (j['type'] ?? 'Kafe').toString().trim(),
-    area: (j['area'] ?? '').toString().trim(),
-    note: (j['note'] ?? '').toString().trim(),
+  Cafe withNote(String n) => Cafe(
+    name: name,
+    type: type,
+    area: area,
+    note: n,
+    latitude: latitude,
+    longitude: longitude,
   );
 }
 
-/// Rekomendasi kafe/coworking berbasis koordinat lewat Gemini (PBI-25).
+/// AI hanya MENJELASKAN tempat yang sudah ditemukan di peta (PBI-25); ia tidak lagi
+/// diminta mengarang daftar tempat dari koordinat. Bila AI gagal (kunci kosong,
+/// ditolak, offline), daftar dari peta tetap tampil.
 class CafeLlmService {
-  static const _modelName = 'gemini-3.8-flash';
+  static const modelName = 'gemini-2.5-flash';
 
-  Future<List<Cafe>> recommend({
-    required double latitude,
-    required double longitude,
-  }) async {
-    if (Env.geminiApiKey.isEmpty) {
-      throw StateError(
-        'GEMINI_API_KEY kosong. '
-        'Jalankan: flutter run --dart-define-from-file=env.json',
-      );
-    }
+  /// Mengembalikan satu catatan singkat per tempat (urutan sama). Melempar
+  /// exception bila gagal; pemanggil yang menangkapnya.
+  Future<List<String>> annotate(List<Cafe> places) async {
+    if (Env.geminiApiKey.isEmpty) throw StateError('GEMINI_API_KEY kosong.');
+    if (places.isEmpty) return const [];
 
     final model = GenerativeModel(
-      model: _modelName,
+      model: modelName,
       apiKey: Env.geminiApiKey,
       generationConfig: GenerationConfig(
-        temperature: 0.3,
+        temperature: 0.2,
         responseMimeType: 'application/json',
       ),
     );
-
+    final list = [
+      for (var i = 0; i < places.length; i++)
+        {'i': i, 'name': places[i].name, 'type': places[i].type, 'data': places[i].note},
+    ];
     final prompt =
         '''
 Kamu asisten untuk freelancer yang mencari tempat kerja.
-Koordinat pengguna: latitude $latitude, longitude $longitude.
-Sebutkan maksimal 5 kafe atau coworking space NYATA yang kamu ketahui berada
-di sekitar koordinat tersebut dan cocok untuk bekerja (wifi, colokan, tenang).
-Jangan mengarang nama tempat. Jika tidak yakin, kembalikan array kosong [].
-Jawab HANYA JSON array tanpa teks lain, setiap elemen berbentuk:
-{"name": "nama tempat", "type": "Kafe atau Coworking", "area": "kecamatan/jalan", "note": "alasan cocok untuk kerja, 1 kalimat Bahasa Indonesia"}
+Berikut tempat NYATA dari peta (JSON): ${jsonEncode(list)}
+Untuk tiap tempat tulis 1 kalimat Bahasa Indonesia (maks 18 kata) tentang
+kecocokannya untuk bekerja, HANYA berdasarkan nama, jenis, dan field "data".
+Jangan menambah fakta (harga, menu, suasana) yang tidak ada di data.
+Jawab HANYA JSON array: [{"i": 0, "note": "..."}, ...]
 ''';
-
     final res = await model
         .generateContent([Content.text(prompt)])
-        .timeout(const Duration(seconds: 30));
-
+        .timeout(const Duration(seconds: 25));
     final text = res.text;
     if (text == null || text.trim().isEmpty) {
       throw StateError('AI tidak mengembalikan jawaban.');
     }
-
-    final clean = text.replaceAll(RegExp(r'```(?:json)?'), '').trim();
-    final decoded = jsonDecode(clean);
-    final raw = decoded is List
-        ? decoded
-        : (decoded is Map ? decoded['cafes'] : null);
-    if (raw is! List) {
-      throw const FormatException('Format jawaban AI tidak sesuai.');
+    final decoded = jsonDecode(text.replaceAll(RegExp(r'```(?:json)?'), '').trim());
+    if (decoded is! List) throw const FormatException('Format jawaban AI tidak sesuai.');
+    final out = List<String>.filled(places.length, '');
+    for (final e in decoded) {
+      if (e is Map && e['i'] is int && e['note'] != null) {
+        final i = e['i'] as int;
+        if (i >= 0 && i < out.length) out[i] = e['note'].toString().trim();
+      }
     }
-
-    return raw
-        .whereType<Map<String, dynamic>>()
-        .map(Cafe.fromJson)
-        .where((c) => c.name.isNotEmpty)
-        .take(6)
-        .toList();
+    return out;
   }
 }
