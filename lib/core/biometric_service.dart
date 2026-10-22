@@ -27,6 +27,20 @@ class BiometricService {
     }
   }
 
+  /// Untuk gerbang halaman sensitif (Pendapatan): sidik jari/wajah, atau PIN/pola
+  /// layar kunci HP sebagai cadangan. Gagal-tertutup: false jika dibatalkan,
+  /// gagal, atau HP tidak punya biometrik maupun layar kunci.
+  Future<bool> authenticateWithDeviceFallback(String reason) async {
+    try {
+      return await _auth.authenticate(
+        localizedReason: reason,
+        biometricOnly: false,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> guard(String reason) async =>
       await isAvailable() ? authenticate(reason) : true;
 }

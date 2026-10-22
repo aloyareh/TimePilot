@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'auth_controller.dart';
+import 'biometric_provider.dart';
 
 class BiometricToggleTile extends ConsumerStatefulWidget {
   const BiometricToggleTile({super.key});
@@ -12,28 +12,14 @@ class BiometricToggleTile extends ConsumerStatefulWidget {
 }
 
 class _BiometricToggleTileState extends ConsumerState<BiometricToggleTile> {
-  bool? _enabled; // null = masih memuat
   bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final enabled = await ref.read(authRepositoryProvider).isBiometricEnabled();
-    if (!mounted) return;
-    setState(() => _enabled = enabled);
-  }
 
   Future<void> _toggle(bool value) async {
     setState(() => _busy = true);
-    final ctrl = ref.read(authControllerProvider.notifier);
-    var result = value;
+    final ctrl = ref.read(biometricEnabledProvider.notifier);
     if (value) {
-      result = await ctrl.enableBiometric();
-      if (!result && mounted) {
+      final ok = await ctrl.enable();
+      if (!ok && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -43,23 +29,22 @@ class _BiometricToggleTileState extends ConsumerState<BiometricToggleTile> {
         );
       }
     } else {
-      await ctrl.disableBiometric();
+      await ctrl.disable();
     }
-    if (!mounted) return;
-    setState(() {
-      _enabled = result;
-      _busy = false;
-    });
+    if (mounted) setState(() => _busy = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final enabled = ref.watch(biometricEnabledProvider);
     return SwitchListTile(
       secondary: const Icon(Icons.fingerprint),
-      title: const Text('Login biometrik'),
-      subtitle: const Text('Masuk dengan sidik jari / wajah, bukan password.'),
-      value: _enabled ?? false,
-      onChanged: (_enabled == null || _busy) ? null : _toggle,
+      title: const Text('Biometrik'),
+      subtitle: const Text(
+        'Aktifkan untuk Login dan buka halaman Pendapatan dengan biometrik',
+      ),
+      value: enabled.value ?? false,
+      onChanged: (enabled.isLoading || _busy) ? null : _toggle,
     );
   }
 }
