@@ -12,7 +12,6 @@ import '../cafes/cafe_entry_card.dart';
 import '../earnings/earnings_page.dart';
 import '../earnings/earnings_providers.dart';
 import '../profile/persona_setup_page.dart';
-import '../profile/profile_providers.dart';
 import '../session/task_session_page.dart';
 import 'task_form_page.dart';
 import 'task_providers.dart';
@@ -37,7 +36,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   Widget _brand(ThemeData theme) {
     return Row(
       children: [
-        Image.asset('assets/images/logo.png', width: 32, height: 32),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.r8),
+          child: Image.asset('assets/images/logo.png', width: 32, height: 32),
+        ),
         const SizedBox(width: AppSpacing.s8),
         Text.rich(
           TextSpan(
@@ -66,14 +68,27 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     required List<DropdownMenuItem<String?>> items,
     required ValueChanged<String?> onChanged,
   }) {
-    return SizedBox(
-      width: 160,
+    return Expanded(
       child: DropdownButtonFormField<String?>(
         key: ValueKey(value),
         initialValue: value,
         isExpanded: true,
-        decoration: InputDecoration(labelText: label, isDense: true),
-        items: items,
+        iconSize: 18,
+        style: const TextStyle(
+          fontSize: 12,
+          color: AppColors.navy,
+          fontFamily: 'Poppins',
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(fontSize: 12),
+          floatingLabelStyle: const TextStyle(fontSize: 12),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s4,
+            vertical: AppSpacing.s4,
+          ),
+        ),        items: items,
         onChanged: onChanged,
       ),
     );
@@ -112,9 +127,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
-          Wrap(
-            spacing: AppSpacing.s8,
-            runSpacing: AppSpacing.s8,
+          Row(
             children: [
               _dropdown(
                 label: 'Status',
@@ -136,6 +149,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   ),
                 ],
               ),
+              const SizedBox(width: AppSpacing.s8),
               _dropdown(
                 label: 'Klien',
                 value: filter.clientId,
@@ -146,8 +160,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     DropdownMenuItem(value: c.id, child: Text(c.name)),
                 ],
               ),
+              const SizedBox(width: AppSpacing.s8),
               _dropdown(
-                label: 'Mata uang',
+                label: 'Valuta',
                 value: filter.currency,
                 onChanged: notifier.setCurrency,
                 items: [
@@ -177,7 +192,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           const SizedBox(height: AppSpacing.s12),
           Text(
             noTasks
-                ? 'Belum ada tugas.\nKetuk "Tugas baru" untuk menambahkan.'
+                ? 'Belum ada tugas.\nKetuk tombol + untuk menambahkan.'
                 : 'Tidak ada tugas yang cocok.',
             textAlign: TextAlign.center,
           ),
@@ -209,12 +224,14 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
     return Scaffold(
       appBar: AppBar(titleSpacing: AppSpacing.s16, title: _brand(theme)),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(
           context,
         ).push(MaterialPageRoute<void>(builder: (_) => const TaskFormPage())),
-        icon: const Icon(Icons.add),
-        label: const Text('Tugas baru'),
+        tooltip: 'Tugas baru',
+        backgroundColor: AppColors.blue,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
       body: CustomScrollView(
         slivers: [
@@ -237,13 +254,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.navy.withValues(alpha: 0.1),
+                      color: AppColors.blue.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.r12),
                     ),
                     child: Text(
                       '${tasks.length}',
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: AppColors.navy,
+                        color: AppColors.blue,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -296,7 +313,6 @@ class _DashboardHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final user = ref.watch(authControllerProvider).value;
-    final profile = ref.watch(profileProvider);
     final tasks = ref.watch(tasksProvider);
     final earnings = ref.watch(earningsProvider);
     final idrPerUsd = ref.watch(ratesProvider).value?.perUsd['IDR'];
@@ -311,7 +327,6 @@ class _DashboardHeader extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Halo kembali,', style: theme.textTheme.bodySmall),
           Text(
             name.isEmpty ? 'Selamat Datang' : 'Selamat Datang, $name',
             style: theme.textTheme.headlineSmall,
@@ -385,55 +400,50 @@ class _DashboardHeader extends ConsumerWidget {
           const SizedBox(height: AppSpacing.s24),
           Text('Menu Utama', style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.s12),
-          Row(
-            children: [
-              Expanded(
-                child: _MenuTile(
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _MenuTile(
                   icon: Icons.add_rounded,
                   color: AppColors.blue,
-                  title: 'Tambah Tugas',
-                  subtitle: 'Buat rencana',
-                  onTap: () => _push(context, const TaskFormPage()),
+                    title: 'Tambah Tugas',
+                    onTap: () => _push(context, const TaskFormPage()),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.s12),
-              Expanded(
-                child: _MenuTile(
+                const SizedBox(width: AppSpacing.s8),
+                Expanded(
+                  child: _MenuTile(
                   icon: Icons.payments_outlined,
                   color: AppColors.success,
-                  title: 'Pendapatan',
-                  subtitle: 'Terkunci biometrik',
-                  onTap: () => _push(context, const EarningsPage()),
+                    title: 'Pendapatan',
+                    onTap: () => _push(context, const EarningsPage()),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.s12),
-          Row(
-            children: [
-              Expanded(
-                child: _MenuTile(
+                const SizedBox(width: AppSpacing.s8),
+                Expanded(
+                  child: _MenuTile(
                   icon: Icons.person_outline_rounded,
                   color: AppColors.orange,
-                  title: 'Atur Persona',
-                  subtitle: (profile?.role ?? '').isEmpty
-                      ? 'Profil kerja'
-                      : profile!.role,
-                  onTap: () =>
-                      _push(context, const PersonaSetupPage(onboarding: false)),
+                    title: 'Atur Persona',
+                    onTap: () => _push(
+                      context,
+                      const PersonaSetupPage(onboarding: false),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.s12),
-              Expanded(
-                child: _MenuTile(
-                  icon: Icons.link,
+                const SizedBox(width: AppSpacing.s8),
+                Expanded(
+                  child: _MenuTile(
+                    icon: Icons.link,
                   color: AppColors.navy,
-                  title: 'Blockchain',
-                  subtitle: 'Verifikasi data',
-                  onTap: () => _push(context, const BlockchainPage()),
+                    title: 'Blockchain',
+                    onTap: () => _push(context, const BlockchainPage()),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -464,6 +474,7 @@ class _StatTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(AppRadius.r16),
+        border: Border.all(color: AppColors.surfaceGray),
       ),
       child: Row(
         children: [
@@ -471,8 +482,8 @@ class _StatTile extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(AppRadius.r12),
+              color: AppColors.surfaceGray,
+              borderRadius: BorderRadius.circular(AppRadius.r8),
             ),
             child: Icon(icon, color: color, size: 20),
           ),
@@ -490,7 +501,10 @@ class _StatTile extends StatelessWidget {
                 Text.rich(
                   TextSpan(
                     text: value,
-                    style: theme.textTheme.titleSmall,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.navy,
+                    ),
                     children: [
                       if (unit != null)
                         TextSpan(
@@ -516,14 +530,12 @@ class _MenuTile extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.title,
-    required this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
   final Color color;
   final String title;
-  final String subtitle;
   final VoidCallback onTap;
 
   @override
@@ -533,40 +545,36 @@ class _MenuTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: radius,
-          boxShadow: AppShadows.soft,
-        ),
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.s16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s4,
+              vertical: AppSpacing.s12,
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
+                    color: AppColors.surfaceGray,
                     borderRadius: BorderRadius.circular(AppRadius.r12),
                   ),
-                  child: Icon(icon, color: color, size: 22),
+                  child: Icon(icon, color: color, size: 32),
                 ),
-                const SizedBox(height: AppSpacing.s12),
+                const SizedBox(height: AppSpacing.s8),
                 Text(
                   title,
-                  style: theme.textTheme.titleSmall,
-                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
                 ),
               ],
             ),
@@ -667,7 +675,7 @@ class _TaskCard extends ConsumerWidget {
                 Text(
                   'Sedang berjalan',
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.navy,
+                    color: AppColors.blue,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -690,7 +698,7 @@ class _TaskCard extends ConsumerWidget {
               IconButton(
                 icon: Icon(
                   running ? Icons.timer : Icons.play_circle_outline,
-                  color: AppColors.navy,
+                  color: AppColors.blue,
                 ),
                 tooltip: running ? 'Buka timer' : 'Mulai sesi',
                 onPressed: () => Navigator.of(context).push(

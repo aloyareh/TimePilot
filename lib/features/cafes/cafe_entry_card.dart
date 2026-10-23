@@ -14,11 +14,7 @@ class CafeEntryCard extends StatelessWidget {
       color: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.navy, AppColors.blue],
-          ),
+          color: AppColors.blue,
           borderRadius: radius,
           boxShadow: AppShadows.medium,
         ),
@@ -33,13 +29,9 @@ class CafeEntryCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.s16),
             child: Row(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(AppRadius.r16),
-                  ),
+                SizedBox(
+                  width: 32,
+                  height: 32,
                   child: const Icon(
                     Icons.local_cafe_outlined,
                     color: Colors.white,
@@ -51,13 +43,6 @@ class CafeEntryCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'REKOMENDASI KERJA',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.75),
-                          letterSpacing: 0.8,
-                        ),
-                      ),
                       const SizedBox(height: AppSpacing.s4),
                       Text(
                         'Lihat Kafe untuk Co-working Terdekat',
@@ -69,13 +54,9 @@ class CafeEntryCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.s12),
-                Container(
+                SizedBox(
                   width: 36,
                   height: 36,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
                   child: const Icon(Icons.chevron_right, color: AppColors.navy),
                 ),
               ],
