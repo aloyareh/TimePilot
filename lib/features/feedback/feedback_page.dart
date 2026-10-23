@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/local/models/feedback_entry.dart';
 import '../../data/repositories/feedback_repository.dart';
 import '../profile/profile_avatar.dart';
+import 'feedback_photo_provider.dart';
 import 'feedback_providers.dart';
 
 class FeedbackPage extends ConsumerWidget {
@@ -48,6 +51,7 @@ class FeedbackPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(feedbackListProvider);
+    final photos = ref.watch(feedbackPhotosProvider).value ?? const <String, Uint8List>{};
 
     return Scaffold(
       appBar: AppBar(title: const Text('Kesan Pesan')),
@@ -92,6 +96,7 @@ class FeedbackPage extends ConsumerWidget {
                 final entry = items[i - 1];
                 return _FeedbackCard(
                   entry: entry,
+                  photo: photos[entry.id],
                   onEdit: () => showFeedbackForm(context, existing: entry),
                   onDelete: () => _confirmDelete(context, ref, entry),
                 );
@@ -153,11 +158,13 @@ class _Message extends StatelessWidget {
 class _FeedbackCard extends StatelessWidget {
   const _FeedbackCard({
     required this.entry,
+    required this.photo,
     required this.onEdit,
     required this.onDelete,
   });
 
   final FeedbackEntry entry;
+  final Uint8List? photo;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -226,20 +233,23 @@ class _FeedbackCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Foto hanya tersimpan di HP pemiliknya, jadi hanya kartu milikmu
-              // yang memakai foto profil; kartu orang lain memakai inisial.
+              // Kartu milikmu memakai foto lokal; kartu orang lain memakai
+              // thumbnail dari server, atau inisial bila belum punya foto.
               if (entry.isMine)
                 const ProfileAvatar(radius: 20)
               else
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: AppColors.navy,
-                  child: Text(
-                    initial,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
+                  backgroundImage: photo == null ? null : MemoryImage(photo!),
+                  child: photo != null
+                      ? null
+                      : Text(
+                          initial,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               const SizedBox(width: AppSpacing.s12),
               Expanded(
