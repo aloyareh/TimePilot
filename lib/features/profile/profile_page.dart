@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,100 +5,180 @@ import '../../core/theme/app_theme.dart';
 import '../../core/time/time_service.dart';
 import '../auth/auth_controller.dart';
 import '../auth/biometric_toggle_tile.dart';
-import '../dev/alarm_spike_page.dart';
+import '../blockchain/blockchain_page.dart';
 import 'client_list_section.dart';
 import 'persona_setup_page.dart';
 import 'profile_avatar.dart';
 import 'profile_providers.dart';
 
-/// Tab Profile (PBI-07): info akun, persona (pekerjaan, zona waktu),
-/// CRUD klien, dan pengaturan biometrik.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
+  BoxDecoration get _cardDecoration => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(AppRadius.r24),
+    boxShadow: AppShadows.soft,
+  );
+
+  void _openPersona(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => const PersonaSetupPage(onboarding: false),
+    ),
+  );
+
+  void _openBlockchain(BuildContext context) => Navigator.of(context)
+      .push(MaterialPageRoute<void>(builder: (_) => const BlockchainPage()));
+
+  Widget _personaCard(
+    BuildContext context,
+    ThemeData theme,
+    String role,
+    String zone,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: _cardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.orange.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.r12),
+                ),
+                child: const Icon(
+                  Icons.badge_outlined,
+                  color: AppColors.orange,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('User Persona', style: theme.textTheme.bodySmall),
+                    Text(role, style: theme.textTheme.titleMedium),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: AppSpacing.s24),
+          _InfoRow(icon: Icons.work_outline, label: 'Pekerjaan', value: role),
+          const SizedBox(height: AppSpacing.s12),
+          _InfoRow(icon: Icons.public, label: 'Zona waktu', value: zone),
+          const SizedBox(height: AppSpacing.s16),
+          OutlinedButton.icon(
+            onPressed: () => _openPersona(context),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Ubah persona'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _blockchainCard(BuildContext context, ThemeData theme) {
+    return Container(
+      decoration: _cardDecoration,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.r24),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: () => _openBlockchain(context),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s4,
+          ),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.blue.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.r12),
+            ),
+            child: const Icon(Icons.link, color: AppColors.blue, size: 22),
+          ),
+          title: Text('Blockchain Sesi', style: theme.textTheme.titleSmall),
+          subtitle: Text(
+            'Verifikasi riwayat jam kerja',
+            style: theme.textTheme.bodySmall,
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: AppColors.navInactive,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final user = ref.watch(authControllerProvider).value;
     final profile = ref.watch(profileProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.s16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.s16),
+            decoration: _cardDecoration,
+            child: Row(
+              children: [
+                const ProfileAvatar(radius: 32, editable: true),
+                const SizedBox(width: AppSpacing.s16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const ProfileAvatar(radius: 32, editable: true),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user?.fullName ?? user?.username ?? '-',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            Text('@${user?.username ?? '-'}'),
-                          ],
-                        ),
+                      Text(
+                        user?.fullName ?? user?.username ?? '-',
+                        style: theme.textTheme.titleLarge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '@${user?.username ?? '-'}',
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),
-                  const Divider(height: 28),
-                  _InfoRow(
-                    icon: Icons.work_outline,
-                    label: 'Pekerjaan',
-                    value: profile?.role ?? '-',
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    icon: Icons.public,
-                    label: 'Zona waktu',
-                    value: profile == null
-                        ? '-'
-                        : AppZones.label(profile.homeTimezone),
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 40),
-                      ),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) =>
-                              const PersonaSetupPage(onboarding: false),
-                        ),
-                      ),
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text('Ubah persona'),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
-          ClientListSection(homeZone: profile?.homeTimezone),
-          const SizedBox(height: 12),
-          const Divider(),
-          const BiometricToggleTile(),
-          if (kDebugMode)
-            ListTile(
-              leading: const Icon(Icons.alarm),
-              title: const Text('Spike alarm (dev)'),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const AlarmSpikePage()),
-              ),
-            ),
+          const SizedBox(height: AppSpacing.s16),
+          _personaCard(
+            context,
+            theme,
+            profile?.role ?? '-',
+            profile == null ? '-' : AppZones.label(profile.homeTimezone),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          ClientListSection(
+            homeZone: profile?.homeTimezone,
+            editable: false,
+            maxVisible: 3,
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          _blockchainCard(context, theme),
+          const SizedBox(height: AppSpacing.s16),
+          Container(
+            decoration: _cardDecoration,
+            clipBehavior: Clip.antiAlias,
+            child: const BiometricToggleTile(),
+          ),
+          const SizedBox(height: AppSpacing.s16),
         ],
       ),
     );
@@ -119,13 +198,21 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
       children: [
         Icon(icon, size: 20, color: AppColors.navInactive),
-        const SizedBox(width: 12),
-        Text(label, style: const TextStyle(color: AppColors.navInactive)),
+        const SizedBox(width: AppSpacing.s12),
+        Text(label, style: theme.textTheme.bodySmall),
         const Spacer(),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Flexible(
+          child: Text(
+            value,
+            style: theme.textTheme.titleSmall,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

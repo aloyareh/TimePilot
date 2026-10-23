@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -124,7 +125,30 @@ Future<void> _pick(
     if (picked == null) {
       return; // dibatalkan
     }
-    await ref.read(profilePhotoProvider.notifier).setFromPath(picked.path);
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: picked.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 85,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Atur foto profil',
+          toolbarColor: AppColors.navy,
+          toolbarWidgetColor: Colors.white,
+          activeControlsWidgetColor: AppColors.blue,
+          cropStyle: CropStyle.circle,
+          lockAspectRatio: true,
+          initAspectRatio: CropAspectRatioPreset.square,
+          hideBottomControls: true,
+        ),
+      ],
+    );
+    if (cropped == null) {
+      return;
+    }
+    await ref.read(profilePhotoProvider.notifier).setFromPath(cropped.path);
     messenger.showSnackBar(
       const SnackBar(content: Text('Foto profil diperbarui.')),
     );

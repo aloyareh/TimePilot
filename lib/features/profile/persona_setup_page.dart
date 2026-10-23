@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/time/time_service.dart';
 import '../auth/auth_controller.dart';
 import 'client_list_section.dart';
 import 'profile_providers.dart';
 
-/// Form User Persona: Pekerjaan (wajib), zona waktu rumah, dan daftar klien.
-///
-/// [onboarding] = true: dipakai setelah registrasi lewat PersonaGate. Tidak
-/// bisa dilewati / ditutup sebelum Pekerjaan disimpan. Setelah tersimpan,
-/// PersonaGate otomatis berpindah ke aplikasi utama.
-/// [onboarding] = false: mode ubah dari tab Profile.
 class PersonaSetupPage extends ConsumerStatefulWidget {
   const PersonaSetupPage({super.key, required this.onboarding});
 
@@ -58,7 +53,6 @@ class _PersonaSetupPageState extends ConsumerState<PersonaSetupPage> {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Persona disimpan.')));
       }
-      // Onboarding: PersonaGate melihat profil terisi dan pindah sendiri.
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -66,8 +60,82 @@ class _PersonaSetupPageState extends ConsumerState<PersonaSetupPage> {
     }
   }
 
+  Widget _header(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.navy, AppColors.blue],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.r24),
+        boxShadow: AppShadows.medium,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(AppRadius.r16),
+            ),
+            child: const Icon(
+              Icons.person_pin_circle_outlined,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Satu langkah lagi',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  'Isi pekerjaanmu dan tambahkan klien agar jadwal dan tarif '
+                  'bisa dihitung dengan benar.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({required String title, required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r24),
+        boxShadow: AppShadows.soft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.s16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final onboarding = widget.onboarding;
     return PopScope(
       canPop: !onboarding,
@@ -80,69 +148,73 @@ class _PersonaSetupPageState extends ConsumerState<PersonaSetupPage> {
               TextButton(
                 onPressed: () =>
                     ref.read(authControllerProvider.notifier).logout(),
-                child: const Text(
-                  'Keluar',
-                  style: TextStyle(color: Colors.white),
-                ),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                child: const Text('Keluar'),
               ),
           ],
         ),
         body: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.s16),
             children: [
               if (onboarding) ...[
-                Text(
-                  'Satu langkah lagi',
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Isi pekerjaanmu dan tambahkan klien agar jadwal dan tarif '
-                  'bisa dihitung dengan benar.',
-                ),
-                const SizedBox(height: 20),
+                _header(theme),
+                const SizedBox(height: AppSpacing.s16),
               ],
-              TextFormField(
-                controller: _role,
-                textInputAction: TextInputAction.done,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Pekerjaan',
-                  hintText: 'Contoh: Web Developer, UI Designer',
-                  prefixIcon: Icon(Icons.work_outline),
-                ),
-                validator: (v) =>
-                    (v ?? '').trim().isEmpty ? 'Pekerjaan wajib diisi.' : null,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _homeZone,
-                decoration: const InputDecoration(
-                  labelText: 'Zona waktu kamu',
-                  prefixIcon: Icon(Icons.public),
-                ),
-                items: [
-                  for (final z in AppZones.all)
-                    DropdownMenuItem(value: z, child: Text(AppZones.label(z))),
+              _sectionCard(
+                title: 'Profil Pekerjaan',
+                children: [
+                  TextFormField(
+                    controller: _role,
+                    textInputAction: TextInputAction.done,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Pekerjaan',
+                      hintText: 'Contoh: Web Developer, UI Designer',
+                      prefixIcon: Icon(Icons.work_outline),
+                    ),
+                    validator: (v) => (v ?? '').trim().isEmpty
+                        ? 'Pekerjaan wajib diisi.'
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _homeZone,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Zona waktu kamu',
+                      prefixIcon: Icon(Icons.public),
+                    ),
+                    items: [
+                      for (final z in AppZones.all)
+                        DropdownMenuItem(
+                          value: z,
+                          child: Text(AppZones.label(z)),
+                        ),
+                    ],
+                    onChanged: (v) =>
+                        setState(() => _homeZone = v ?? _homeZone),
+                  ),
                 ],
-                onChanged: (v) => setState(() => _homeZone = v ?? _homeZone),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.s16),
               ClientListSection(homeZone: _homeZone),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.s24),
               FilledButton(
                 onPressed: _saving ? null : _save,
                 child: _saving
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(onboarding ? 'Simpan & Lanjut' : 'Simpan'),
               ),
+              const SizedBox(height: AppSpacing.s16),
             ],
           ),
         ),

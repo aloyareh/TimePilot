@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_theme.dart';
 import 'auth_controller.dart';
 
 final _usernameRe = RegExp(r'^[a-z0-9_.]{3,30}$');
@@ -54,7 +55,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final username = _username.text.trim();
     final name = _fullName.text.trim();
     final err = _register
-        ? await ctrl.register(username, _password.text, name.isEmpty ? null : name)
+        ? await ctrl.register(
+            username,
+            _password.text,
+            name.isEmpty ? null : name,
+          )
         : await ctrl.login(username, _password.text);
     if (!mounted) return;
     setState(() {
@@ -78,160 +83,242 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
   }
 
+  void _toggleMode() {
+    setState(() {
+      _register = !_register;
+      _error = null;
+      _formKey.currentState?.reset();
+    });
+  }
+
+  Widget _logo(ThemeData theme) {
+    return Column(
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.navy, AppColors.blue],
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.r24),
+            boxShadow: AppShadows.medium,
+          ),
+          child: const Icon(
+            Icons.navigation_rounded,
+            size: 40,
+            color: AppColors.orange,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s16),
+        Text.rich(
+          TextSpan(
+            style: theme.textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            children: const [
+              TextSpan(
+                text: 'Time',
+                style: TextStyle(color: AppColors.navy),
+              ),
+              TextSpan(
+                text: 'Pilot',
+                style: TextStyle(color: AppColors.orange),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          'Navigate Your Time.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.navInactive,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _errorBox(ColorScheme scheme) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s12),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+          const SizedBox(width: AppSpacing.s8),
+          Expanded(
+            child: Text(
+              _error!,
+              style: const TextStyle(color: AppColors.error, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.s24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(Icons.navigation, size: 56, color: scheme.secondary),
-                    const SizedBox(height: 12),
-                    Text(
-                      'TimePilot',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _logo(theme),
+                  const SizedBox(height: AppSpacing.s32),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.s24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.r24),
+                      boxShadow: AppShadows.medium,
                     ),
-                    Text(
-                      'Navigate Your Time.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      _register ? 'Buat akun' : 'Masuk',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_register) ...[
-                      TextFormField(
-                        controller: _fullName,
-                        enabled: !_busy,
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Nama lengkap (opsional)',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    TextFormField(
-                      controller: _username,
-                      enabled: !_busy,
-                      autocorrect: false,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Username',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (v) {
-                        final value = (v ?? '').trim().toLowerCase();
-                        if (value.isEmpty) return 'Username wajib diisi.';
-                        if (_register && !_usernameRe.hasMatch(value)) {
-                          return '3–30 karakter: huruf, angka, titik, garis bawah.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _password,
-                      enabled: !_busy,
-                      obscureText: _obscure,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _busy ? null : _submit(),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscure ? Icons.visibility : Icons.visibility_off,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            _register ? 'Buat Akun' : 'Selamat Datang Kembali',
+                            style: theme.textTheme.titleLarge,
                           ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                      validator: (v) {
-                        final value = v ?? '';
-                        if (value.isEmpty) return 'Password wajib diisi.';
-                        if (_register && (value.length < 8 || value.length > 72)) {
-                          return 'Password harus 8–72 karakter.';
-                        }
-                        return null;
-                      },
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: scheme.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline, color: scheme.error),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: TextStyle(color: scheme.error),
+                          const SizedBox(height: AppSpacing.s4),
+                          Text(
+                            _register
+                                ? 'Mulai perjalananmu bersama TimePilot'
+                                : 'Masuk untuk melanjutkan perjalananmu',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: AppSpacing.s24),
+                          if (_register) ...[
+                            TextFormField(
+                              controller: _fullName,
+                              enabled: !_busy,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'Nama lengkap (opsional)',
+                                prefixIcon: Icon(Icons.badge_outlined),
                               ),
                             ),
+                            const SizedBox(height: AppSpacing.s12),
                           ],
+                          TextFormField(
+                            controller: _username,
+                            enabled: !_busy,
+                            autocorrect: false,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'Username',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            validator: (v) {
+                              final value = (v ?? '').trim().toLowerCase();
+                              if (value.isEmpty) return 'Username wajib diisi.';
+                              if (_register && !_usernameRe.hasMatch(value)) {
+                                return '3\u{2013}30 karakter: huruf, angka, titik, garis bawah.';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppSpacing.s12),
+                          TextFormField(
+                            controller: _password,
+                            enabled: !_busy,
+                            obscureText: _obscure,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _busy ? null : _submit(),
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
+                              ),
+                            ),
+                            validator: (v) {
+                              final value = v ?? '';
+                              if (value.isEmpty) return 'Password wajib diisi.';
+                              if (_register &&
+                                  (value.length < 8 || value.length > 72)) {
+                                return 'Password harus 8\u{2013}72 karakter.';
+                              }
+                              return null;
+                            },
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: AppSpacing.s16),
+                            _errorBox(scheme),
+                          ],
+                          const SizedBox(height: AppSpacing.s24),
+                          FilledButton(
+                            onPressed: _busy ? null : _submit,
+                            child: _busy
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(_register ? 'Daftar' : 'Masuk'),
+                          ),
+                          if (!_register && _bioEnabled) ...[
+                            const SizedBox(height: AppSpacing.s12),
+                            OutlinedButton.icon(
+                              onPressed: _busy ? null : _biometric,
+                              icon: const Icon(Icons.fingerprint),
+                              label: const Text('Masuk dengan biometrik'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _register ? 'Sudah punya akun?' : 'Belum punya akun?',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      TextButton(
+                        onPressed: _busy ? null : _toggleMode,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 36),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s8,
+                          ),
                         ),
+                        child: Text(_register ? 'Masuk' : 'Daftar'),
                       ),
                     ],
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: _busy ? null : _submit,
-                      child: _busy
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(_register ? 'Daftar' : 'Masuk'),
-                    ),
-                    if (!_register && _bioEnabled) ...[
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _busy ? null : _biometric,
-                        icon: const Icon(Icons.fingerprint),
-                        label: const Text('Masuk dengan biometrik'),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _busy
-                          ? null
-                          : () => setState(() {
-                              _register = !_register;
-                              _error = null;
-                              _formKey.currentState?.reset();
-                            }),
-                      child: Text(
-                        _register
-                            ? 'Sudah punya akun? Masuk'
-                            : 'Belum punya akun? Daftar',
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
