@@ -16,6 +16,7 @@ import '../profile/profile_providers.dart';
 import '../session/task_session_page.dart';
 import 'task_form_page.dart';
 import 'task_providers.dart';
+import '../chat/chat_entry_card.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -333,6 +334,7 @@ class _DashboardHeader extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.s16),
           const CafeEntryCard(),
+          const ChatEntryCard(),
           const SizedBox(height: AppSpacing.s16),
           Container(
             padding: const EdgeInsets.all(AppSpacing.s16),
