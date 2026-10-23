@@ -6,8 +6,6 @@ import '../../data/local/models/feedback_entry.dart';
 import '../../data/repositories/feedback_repository.dart';
 import 'feedback_providers.dart';
 
-/// Tab "Kesan Pesan" (PBI-26): daftar kesan & pesan semua pengguna (Read),
-/// tulis baru lewat tombol + (Create), dan ubah/hapus milik sendiri (Update/Delete).
 class FeedbackPage extends ConsumerWidget {
   const FeedbackPage({super.key});
 
@@ -27,7 +25,10 @@ class FeedbackPage extends ConsumerWidget {
             child: const Text('Batal'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+              minimumSize: const Size(96, 44),
+            ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Hapus'),
           ),
@@ -62,6 +63,7 @@ class FeedbackPage extends ConsumerWidget {
             icon: Icons.cloud_off_outlined,
             text: e is FeedbackException ? e.message : 'Gagal memuat pesan.',
             action: FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(160, 48)),
               onPressed: () => ref.invalidate(feedbackListProvider),
               child: const Text('Coba lagi'),
             ),
@@ -75,14 +77,24 @@ class FeedbackPage extends ConsumerWidget {
             }
             return ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-              itemCount: items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, i) => _FeedbackCard(
-                entry: items[i],
-                onEdit: () => showFeedbackForm(context, existing: items[i]),
-                onDelete: () => _confirmDelete(context, ref, items[i]),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s16,
+                AppSpacing.s16,
+                AppSpacing.s16,
+                96,
               ),
+              itemCount: items.length + 1,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppSpacing.s12),
+              itemBuilder: (context, i) {
+                if (i == 0) return const _FeedbackIntro();
+                final entry = items[i - 1];
+                return _FeedbackCard(
+                  entry: entry,
+                  onEdit: () => showFeedbackForm(context, existing: entry),
+                  onDelete: () => _confirmDelete(context, ref, entry),
+                );
+              },
             );
           },
         ),
@@ -91,7 +103,26 @@ class FeedbackPage extends ConsumerWidget {
   }
 }
 
-/// Pesan di tengah layar yang tetap bisa ditarik untuk refresh.
+class _FeedbackIntro extends StatelessWidget {
+  const _FeedbackIntro();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Kesan & Pesan', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: AppSpacing.s4),
+        Text(
+          'Bagikan pengalamanmu agar TimePilot makin baik.',
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
 class _Message extends StatelessWidget {
   const _Message({required this.icon, required this.text, this.action});
 
@@ -103,14 +134,14 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(AppSpacing.s32),
       children: [
         const SizedBox(height: 80),
         Icon(icon, size: 56, color: AppColors.blue),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.s12),
         Text(text, textAlign: TextAlign.center),
         if (action != null) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.s16),
           Center(child: action),
         ],
       ],
@@ -129,87 +160,140 @@ class _FeedbackCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
+  Widget _block(
+    ThemeData theme, {
+    required String label,
+    required Color color,
+    required String text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s8,
+            vertical: 2,
+          ),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.r8),
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        Text(text, style: theme.textTheme.bodyMedium),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final initial = entry.author.isEmpty ? '?' : entry.author[0].toUpperCase();
     final time =
         formatFeedbackTime(entry.createdAt) +
-        (entry.isEdited ? ' · diubah' : '');
+        (entry.isEdited ? ' \u00B7 diubah' : '');
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(radius: 18, child: Text(initial)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.isMine ? '${entry.author} (kamu)' : entry.author,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(time, style: theme.textTheme.bodySmall),
-                    ],
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        AppSpacing.s12,
+        AppSpacing.s8,
+        AppSpacing.s16,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r24),
+        boxShadow: AppShadows.soft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.blue.withValues(alpha: 0.12),
+                child: Text(
+                  initial,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: AppColors.blue,
                   ),
                 ),
-                if (entry.isMine)
-                  PopupMenuButton<String>(
-                    onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Ubah')),
-                      PopupMenuItem(value: 'delete', child: Text('Hapus')),
-                    ],
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.isMine ? '${entry.author} (kamu)' : entry.author,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    Text(time, style: theme.textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              if (entry.isMine)
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_horiz,
+                    color: AppColors.navInactive,
                   ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.r12),
+                  ),
+                  onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Ubah')),
+                    PopupMenuItem(value: 'delete', child: Text('Hapus')),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.s8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _block(
+                  theme,
+                  label: 'Kesan',
+                  color: AppColors.blue,
+                  text: entry.impression,
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                _block(
+                  theme,
+                  label: 'Pesan',
+                  color: AppColors.orange,
+                  text: entry.message,
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Kesan',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: AppColors.blue,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(entry.impression),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Pesan',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: AppColors.orange,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(entry.message),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Membuka form di bottom sheet. Isi [existing] untuk mode ubah.
 Future<void> showFeedbackForm(BuildContext context, {FeedbackEntry? existing}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r24)),
+    ),
     builder: (_) => _FeedbackFormSheet(existing: existing),
   );
 }
@@ -277,10 +361,10 @@ class _FeedbackFormSheetState extends ConsumerState<_FeedbackFormSheet> {
     final theme = Theme.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        16,
+        AppSpacing.s16,
         0,
-        16,
-        16 + MediaQuery.of(context).viewInsets.bottom,
+        AppSpacing.s16,
+        AppSpacing.s16 + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SingleChildScrollView(
         child: Form(
@@ -291,11 +375,14 @@ class _FeedbackFormSheetState extends ConsumerState<_FeedbackFormSheet> {
             children: [
               Text(
                 _isEdit ? 'Ubah kesan & pesan' : 'Tulis kesan & pesan',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: theme.textTheme.titleLarge,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.s4),
+              Text(
+                'Bantu kami membuat TimePilot lebih baik.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: AppSpacing.s16),
               TextFormField(
                 controller: _impression,
                 enabled: !_submitting,
@@ -306,11 +393,10 @@ class _FeedbackFormSheetState extends ConsumerState<_FeedbackFormSheet> {
                 decoration: const InputDecoration(
                   labelText: 'Kesan',
                   alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
                 ),
                 validator: (v) => validateFeedbackField(v, label: 'Kesan'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.s12),
               TextFormField(
                 controller: _message,
                 enabled: !_submitting,
@@ -321,22 +407,27 @@ class _FeedbackFormSheetState extends ConsumerState<_FeedbackFormSheet> {
                 decoration: const InputDecoration(
                   labelText: 'Pesan',
                   alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
                 ),
                 validator: (v) => validateFeedbackField(v, label: 'Pesan'),
               ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                const SizedBox(height: AppSpacing.s8),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.s16),
               FilledButton(
                 onPressed: _submitting ? null : _submit,
                 child: _submitting
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(_isEdit ? 'Simpan perubahan' : 'Kirim'),
               ),
