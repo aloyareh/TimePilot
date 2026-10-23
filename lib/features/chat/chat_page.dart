@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'chat_providers.dart';
-import 'chat_service.dart';
 
 /// Chatbot AI (PBI-24): tanya jawab dengan Gemini.
 class ChatPage extends ConsumerStatefulWidget {
