@@ -110,13 +110,13 @@ class _ClientListSectionState extends ConsumerState<ClientListSection> {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.blue.withValues(alpha: 0.12),
+                  color: AppColors.navy.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.r12),
                 ),
                 child: Text(
                   '${clients.length}',
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.blue,
+                    color: AppColors.navy,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -160,18 +160,9 @@ class _ClientListSectionState extends ConsumerState<ClientListSection> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.r16),
                   ),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.blue.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.r12),
-                    ),
-                    child: const Icon(
-                      Icons.business_center_outlined,
-                      color: AppColors.blue,
-                      size: 22,
-                    ),
+                  leading: const Icon(
+                    Icons.handshake_outlined,
+                    color: AppColors.navInactive,
                   ),
                   title: Text(c.name, style: theme.textTheme.titleSmall),
                   subtitle: Text(

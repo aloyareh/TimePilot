@@ -43,20 +43,11 @@ class ProfilePage extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.orange.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppRadius.r12),
-                ),
-                child: const Icon(
-                  Icons.badge_outlined,
-                  color: AppColors.orange,
-                  size: 22,
-                ),
+              const Icon(
+                Icons.assignment_ind_outlined,
+                color: AppColors.navInactive,
               ),
-              const SizedBox(width: AppSpacing.s12),
+              const SizedBox(width: AppSpacing.s16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,9 +60,13 @@ class ProfilePage extends ConsumerWidget {
             ],
           ),
           const Divider(height: AppSpacing.s24),
-          _InfoRow(icon: Icons.work_outline, label: 'Pekerjaan', value: role),
+          _InfoRow(
+            icon: Icons.business_center_outlined,
+            label: 'Pekerjaan',
+            value: role,
+          ),
           const SizedBox(height: AppSpacing.s12),
-          _InfoRow(icon: Icons.public, label: 'Zona waktu', value: zone),
+          _InfoRow(icon: Icons.schedule, label: 'Zona waktu', value: zone),
           const SizedBox(height: AppSpacing.s16),
           OutlinedButton.icon(
             onPressed: () => _openPersona(context),
@@ -96,15 +91,7 @@ class ProfilePage extends ConsumerWidget {
             horizontal: AppSpacing.s16,
             vertical: AppSpacing.s4,
           ),
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.blue.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadius.r12),
-            ),
-            child: const Icon(Icons.link, color: AppColors.blue, size: 22),
-          ),
+          leading: const Icon(Icons.link, color: AppColors.navInactive),
           title: Text('Blockchain Sesi', style: theme.textTheme.titleSmall),
           subtitle: Text(
             'Verifikasi riwayat jam kerja',

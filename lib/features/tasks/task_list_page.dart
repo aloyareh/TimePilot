@@ -37,23 +37,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   Widget _brand(ThemeData theme) {
     return Row(
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.navy, AppColors.blue],
-            ),
-            borderRadius: BorderRadius.circular(AppRadius.r8),
-          ),
-          child: const Icon(
-            Icons.navigation_rounded,
-            size: 20,
-            color: AppColors.orange,
-          ),
-        ),
+        Image.asset('assets/images/logo.png', width: 32, height: 32),
         const SizedBox(width: AppSpacing.s8),
         Text.rich(
           TextSpan(
@@ -253,13 +237,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.blue.withValues(alpha: 0.12),
+                      color: AppColors.navy.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.r12),
                     ),
                     child: Text(
                       '${tasks.length}',
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: AppColors.blue,
+                        color: AppColors.navy,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -442,7 +426,7 @@ class _DashboardHeader extends ConsumerWidget {
               const SizedBox(width: AppSpacing.s12),
               Expanded(
                 child: _MenuTile(
-                  icon: Icons.link_rounded,
+                  icon: Icons.link,
                   color: AppColors.navy,
                   title: 'Blockchain',
                   subtitle: 'Verifikasi data',
@@ -683,7 +667,7 @@ class _TaskCard extends ConsumerWidget {
                 Text(
                   'Sedang berjalan',
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.blue,
+                    color: AppColors.navy,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -706,7 +690,7 @@ class _TaskCard extends ConsumerWidget {
               IconButton(
                 icon: Icon(
                   running ? Icons.timer : Icons.play_circle_outline,
-                  color: AppColors.blue,
+                  color: AppColors.navy,
                 ),
                 tooltip: running ? 'Buka timer' : 'Mulai sesi',
                 onPressed: () => Navigator.of(context).push(

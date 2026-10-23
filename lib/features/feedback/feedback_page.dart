@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/models/feedback_entry.dart';
 import '../../data/repositories/feedback_repository.dart';
+import '../profile/profile_avatar.dart';
 import 'feedback_providers.dart';
 
 class FeedbackPage extends ConsumerWidget {
@@ -137,7 +138,7 @@ class _Message extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.s32),
       children: [
         const SizedBox(height: 80),
-        Icon(icon, size: 56, color: AppColors.blue),
+        Icon(icon, size: 56, color: AppColors.navInactive),
         const SizedBox(height: AppSpacing.s12),
         Text(text, textAlign: TextAlign.center),
         if (action != null) ...[
@@ -160,35 +161,43 @@ class _FeedbackCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
+  /// Satu bagian isi kartu: garis warna di kiri, judul kecil, lalu teks.
   Widget _block(
     ThemeData theme, {
     required String label,
     required Color color,
     required String text,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s8,
-            vertical: 2,
-          ),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(AppRadius.r8),
-          ),
-          child: Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 3,
+            decoration: BoxDecoration(
               color: color,
-              fontWeight: FontWeight.w600,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.s4),
-        Text(text, style: theme.textTheme.bodyMedium),
-      ],
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.navInactive,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(text, style: theme.textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -217,16 +226,21 @@ class _FeedbackCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.blue.withValues(alpha: 0.12),
-                child: Text(
-                  initial,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.blue,
+              // Foto hanya tersimpan di HP pemiliknya, jadi hanya kartu milikmu
+              // yang memakai foto profil; kartu orang lain memakai inisial.
+              if (entry.isMine)
+                const ProfileAvatar(radius: 20)
+              else
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.navy,
+                  child: Text(
+                    initial,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(width: AppSpacing.s12),
               Expanded(
                 child: Column(
@@ -266,7 +280,7 @@ class _FeedbackCard extends StatelessWidget {
                 _block(
                   theme,
                   label: 'Kesan',
-                  color: AppColors.blue,
+                  color: AppColors.navy,
                   text: entry.impression,
                 ),
                 const SizedBox(height: AppSpacing.s12),

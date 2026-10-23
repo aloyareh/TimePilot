@@ -95,21 +95,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return Column(
       children: [
         Container(
-          width: 72,
-          height: 72,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.navy, AppColors.blue],
-            ),
             borderRadius: BorderRadius.circular(AppRadius.r24),
             boxShadow: AppShadows.medium,
           ),
-          child: const Icon(
-            Icons.navigation_rounded,
-            size: 40,
-            color: AppColors.orange,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.r24),
+            child: Image.asset('assets/images/logo.png', width: 80, height: 80),
           ),
         ),
         const SizedBox(height: AppSpacing.s16),
