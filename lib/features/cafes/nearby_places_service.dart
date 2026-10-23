@@ -162,7 +162,7 @@ List<Cafe> parsePlaces(
     final wifi = (tags['internet_access'] ?? '').toString();
     final hours = (tags['opening_hours'] ?? '').toString().trim();
     final notes = <String>[
-      if (wifi == 'wlan' || wifi == 'yes') 'WiFi tersedia (data OSM)',
+      if (wifi == 'wlan' || wifi == 'yes') 'WiFi tersedia',
       if (hours.isNotEmpty) 'Jam buka: $hours',
     ];
     found.add((
@@ -217,7 +217,7 @@ List<Cafe> parseNominatim(
         type: cowork ? 'Coworking' : 'Kafe',
         area: [formatDistance(dist), if (street.isNotEmpty) street].join(' • '),
         note: [
-          if (wifi == 'wlan' || wifi == 'yes') 'WiFi tersedia (data OSM)',
+          if (wifi == 'wlan' || wifi == 'yes') 'WiFi tersedia',
           if (hours.isNotEmpty) 'Jam buka: $hours',
         ].join(' · '),
         latitude: lat,

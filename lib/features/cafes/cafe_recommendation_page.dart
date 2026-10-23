@@ -82,7 +82,7 @@ class CafeRecommendationPage extends ConsumerWidget {
             final action = e is LocationException ? e.action : null;
             final msg = e is LocationException
                 ? e.message
-                : 'Gagal memuat rekomendasi. Periksa koneksi internet lalu coba lagi.\n($e)';
+                : 'Gagal memuat tempat di sekitarmu. Periksa koneksi internet lalu coba lagi.';
             return _message(
               context,
               icon: Icons.error_outline,
@@ -112,7 +112,7 @@ class CafeRecommendationPage extends ConsumerWidget {
                 title: 'Cari tempat kerja',
                 body:
                     'Temukan kafe atau coworking space di sekitarmu '
-                    'berdasarkan lokasi GPS dan rekomendasi AI.',
+                    'berdasarkan lokasi GPS, lengkap dengan saran dari AI.',
                 actions: [
                   FilledButton.icon(
                     onPressed: notifier.fetch,
@@ -129,7 +129,7 @@ class CafeRecommendationPage extends ConsumerWidget {
                 color: AppColors.navInactive,
                 title: 'Belum ada rekomendasi',
                 body:
-                    'Tidak ada kafe atau coworking bernama dalam radius 1,5 km di data peta.',
+                    'Belum ada kafe atau coworking yang tercatat dalam radius 1,5 km dari lokasimu.',
                 actions: [
                   FilledButton(
                     onPressed: notifier.fetch,
@@ -144,19 +144,60 @@ class CafeRecommendationPage extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, i) {
                 if (i == 0) {
-                  return Text(
-                    'Tempat dari OpenStreetMap di sekitar '
-                    '${result.latitude.toStringAsFixed(4)}, '
-                    '${result.longitude.toStringAsFixed(4)}'
-                    '${result.aiError == null ? ', catatan oleh AI' : ' (catatan AI tidak tersedia)'}. '
-                    'Jam buka dan WiFi berasal dari data OSM, cek ulang sebelum berangkat.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (result.aiSummary.isNotEmpty)
+                        Card(
+                          child: ListTile(
+                            leading: const Icon(
+                              Icons.auto_awesome,
+                              color: AppColors.orange,
+                            ),
+                            title: const Text(
+                              'Saran AI',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(result.aiSummary),
+                          ),
+                        ),
+                      if (result.aiPending)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              SizedBox(width: 8),
+                              Text('Menyiapkan saran…'),
+                            ],
+                          ),
+                        )
+                      else if (result.aiSummary.isEmpty && result.aiError != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Saran belum tersedia saat ini.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 4),
+                        child: Text(
+                          'Cek ulang di Google Maps sebelum berangkat.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
                   );
                 }
                 final c = result.cafes[i - 1];
                 return Card(
                   child: ListTile(
-                    isThreeLine: true,
+                    isThreeLine: c.note.isNotEmpty,
                     leading: Icon(
                       c.type.toLowerCase().contains('cowork')
                           ? Icons.business_center_outlined
