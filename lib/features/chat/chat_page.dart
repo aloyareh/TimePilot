@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'chat_providers.dart';
+import 'chat_service.dart';
 
 /// Chatbot AI (PBI-24): tanya jawab dengan Gemini.
 class ChatPage extends ConsumerStatefulWidget {
@@ -191,20 +192,33 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final maxW = MediaQuery.sizeOf(context).width * 0.8;
+    // Pengguna: biru tua pekat, teks putih. AI: abu terang dengan garis tepi, teks gelap.
+    final bg = fromUser ? AppColors.navy : scheme.surfaceContainerHighest;
+    final fg = fromUser ? Colors.white : scheme.onSurface;
+    const r = Radius.circular(16);
+    const tail = Radius.circular(4);
     return Align(
       alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         constraints: BoxConstraints(maxWidth: maxW),
         decoration: BoxDecoration(
-          color: fromUser
-              ? AppColors.navy.withValues(alpha: 0.12)
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          color: bg,
+          border: fromUser ? null : Border.all(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.only(
+            topLeft: r,
+            topRight: r,
+            bottomLeft: fromUser ? r : tail,
+            bottomRight: fromUser ? tail : r,
+          ),
         ),
-        child: child,
+        child: DefaultTextStyle.merge(
+          style: TextStyle(color: fg, height: 1.35),
+          child: child,
+        ),
       ),
     );
   }
