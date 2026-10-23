@@ -8,20 +8,9 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../../core/theme/app_theme.dart';
 import 'shake_counter.dart';
 
-/// Tantangan "Shake to Wake" (PBI-14).
-///
-/// Target kocokan diacak 10-25 setiap halaman dibuka. Saat target tercapai,
-/// halaman memanggil `pop(true)` (kontrak challenge_registry.dart), sehingga
-/// alarm dimatikan dan tombol Start Work Session aktif.
-///
-/// UI tidak membeku: sensor dibaca lewat Stream (event platform channel),
-/// per sampel hanya aritmetika ringan, dan UI hanya dibangun ulang saat
-/// hitungan berubah (ValueNotifier), bukan setiap sampel.
 class ShakeChallengePage extends StatefulWidget {
   const ShakeChallengePage({super.key, this.difficulty = 1});
 
-  /// Diterima dari kontrak registry; target kocokan sengaja acak 10-25
-  /// sesuai PBI-14, jadi tidak memengaruhi target.
   final int difficulty;
 
   @override
@@ -40,7 +29,6 @@ class _ShakeChallengePageState extends State<ShakeChallengePage> {
   @override
   void initState() {
     super.initState();
-    // userAccelerometer = percepatan tanpa gravitasi, jadi HP diam ~0.
     _sub =
         userAccelerometerEventStream(
           samplingPeriod: SensorInterval.gameInterval,
@@ -98,60 +86,84 @@ class _ShakeChallengePageState extends State<ShakeChallengePage> {
       appBar: AppBar(title: const Text('Shake to Wake')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.s24),
           child: ValueListenableBuilder<int>(
             valueListenable: _count,
             builder: (context, count, _) {
               final done = count >= target;
+              final accent = done ? AppColors.success : AppColors.orange;
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    done ? Icons.check_circle : Icons.vibration,
-                    size: 96,
-                    color: done ? AppColors.success : AppColors.orange,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    done ? 'Alarm dimatikan!' : 'Kocok HP-mu!',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    width: 144,
+                    height: 144,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: AppShadows.medium,
+                    ),
+                    child: Icon(
+                      done ? Icons.check_circle : Icons.vibration,
+                      size: 80,
+                      color: accent,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.s24),
+                  Text(
+                    done ? 'Alarm dimatikan!' : 'Kocok HP-mu!',
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
                   Text(
                     'Kocok $target kali untuk mematikan alarm.',
                     textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall,
                   ),
-                  const SizedBox(height: 32),
-                  Text(
-                    '$count / $target',
-                    style: theme.textTheme.displayMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                  const SizedBox(height: AppSpacing.s32),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.s16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.r24),
+                      boxShadow: AppShadows.soft,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: count / target,
-                      minHeight: 12,
-                      color: done ? AppColors.success : AppColors.blue,
-                      backgroundColor: AppColors.surfaceGray,
+                    child: Column(
+                      children: [
+                        Text(
+                          '$count / $target',
+                          style: theme.textTheme.displayMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.s16),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.r8),
+                          child: LinearProgressIndicator(
+                            value: count / target,
+                            minHeight: 12,
+                            color: done ? AppColors.success : AppColors.blue,
+                            backgroundColor: AppColors.surfaceGray,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (_sensorError != null) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.s24),
                     Text(
                       _sensorError!,
-                      style: TextStyle(color: theme.colorScheme.error),
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
-                  // Emulator tidak punya sensor: tombol ini hanya ada di debug.
                   if (kDebugMode && !done) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.s24),
                     TextButton(
                       onPressed: () {
                         _counter.addSample(

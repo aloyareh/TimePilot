@@ -9,19 +9,9 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../../core/theme/app_theme.dart';
 import 'balance_tracker.dart';
 
-/// Tantangan "Balance Challenge" (PBI-15, US-2).
-///
-/// Jaga HP rata sehingga bola berada di dalam lingkaran target selama
-/// 5 detik berturut-turut, sebanyak 4 ronde. Setelah ronde terakhir, halaman
-/// memanggil `pop(true)` (kontrak challenge_registry.dart) sehingga alarm
-/// dimatikan dan tombol Start Work Session aktif.
-///
-/// Sensor dibaca lewat Stream; UI hanya di-update ~30 fps lewat ValueNotifier,
-/// jadi thread UI tidak terbebani.
 class BalanceChallengePage extends StatefulWidget {
   const BalanceChallengePage({super.key, this.difficulty = 1});
 
-  /// Diterima dari kontrak registry; aturan PBI-15 tetap (5 dtk x 4 ronde).
   final int difficulty;
 
   @override
@@ -29,7 +19,7 @@ class BalanceChallengePage extends StatefulWidget {
 }
 
 class _BalanceChallengePageState extends State<BalanceChallengePage> {
-  static const _maxAngle = 20 * pi / 180; // simpangan di tepi lingkaran luar
+  static const _maxAngle = 20 * pi / 180;
   static const _uiIntervalMs = 33;
 
   final _tracker = BalanceTracker();
@@ -111,81 +101,109 @@ class _BalanceChallengePageState extends State<BalanceChallengePage> {
       appBar: AppBar(title: const Text('Balance Challenge')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.s24),
           child: ValueListenableBuilder<_BalanceView>(
             valueListenable: _view,
             builder: (context, v, _) {
               final done = v.rounds >= _tracker.rounds;
               final heldSec = v.heldMs / 1000;
               final round = done ? _tracker.rounds : v.rounds + 1;
+              final accent = done || v.balanced
+                  ? AppColors.success
+                  : AppColors.orange;
               return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     done ? 'Alarm dimatikan!' : 'Seimbangkan HP-mu!',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: theme.textTheme.headlineSmall,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.s8),
                   Text(
                     'Jaga bola di lingkaran target selama '
                     '${holdSeconds.toStringAsFixed(0)} detik, '
                     '${_tracker.rounds} kali.',
                     textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall,
                   ),
-                                   const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.s16),
                   Expanded(
                     child: Center(
                       child: AspectRatio(
                         aspectRatio: 1,
-                        child: CustomPaint(
-                          painter: _BalancePainter(
-                            x: v.x,
-                            y: v.y,
-                            balanced: v.balanced,
-                            targetFraction: _tracker.tolerance / _maxAngle,
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.s16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: AppShadows.medium,
+                          ),
+                          child: CustomPaint(
+                            painter: _BalancePainter(
+                              x: v.x,
+                              y: v.y,
+                              balanced: v.balanced,
+                              targetFraction: _tracker.tolerance / _maxAngle,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Ronde $round / ${_tracker.rounds}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(height: AppSpacing.s16),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.s16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.r24),
+                      boxShadow: AppShadows.soft,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: done ? 1 : (heldSec / holdSeconds).clamp(0.0, 1.0),
-                      minHeight: 12,
-                      color: v.balanced ? AppColors.success : AppColors.orange,
-                      backgroundColor: AppColors.surfaceGray,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Ronde $round / ${_tracker.rounds}',
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const Spacer(),
+                            Text(
+                              done
+                                  ? 'Selesai'
+                                  : '${heldSec.toStringAsFixed(1)} / '
+                                        '${holdSeconds.toStringAsFixed(0)} dtk',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.s12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.r8),
+                          child: LinearProgressIndicator(
+                            value: done
+                                ? 1
+                                : (heldSec / holdSeconds).clamp(0.0, 1.0),
+                            minHeight: 12,
+                            color: accent,
+                            backgroundColor: AppColors.surfaceGray,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    done
-                        ? 'Selesai'
-                        : '${heldSec.toStringAsFixed(1)} / '
-                              '${holdSeconds.toStringAsFixed(0)} dtk',
                   ),
                   if (_sensorError != null) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.s12),
                     Text(
                       _sensorError!,
-                      style: TextStyle(color: theme.colorScheme.error),
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
-                  // Emulator tanpa sensor: tombol ini hanya ada di debug.
                   if (kDebugMode && !done) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.s4),
                     TextButton(
                       onPressed: () {
                         _tracker.debugCompleteRound();
@@ -221,7 +239,6 @@ class _BalanceView {
       heldMs = 0,
       rounds = 0;
 
-  /// Posisi bola ternormalisasi -1..1 (kanan/bawah positif).
   final double x;
   final double y;
   final bool balanced;
@@ -249,9 +266,7 @@ class _BalancePainter extends CustomPainter {
     final ballRadius = radius * 0.1;
     final travel = radius - ballRadius;
 
-    // Lingkaran luar (area gerak bola).
     canvas.drawCircle(center, radius, Paint()..color = AppColors.surfaceGray);
-    // Lingkaran target di tengah.
     final targetColor = balanced ? AppColors.success : AppColors.orange;
     final targetR = radius * targetFraction;
     canvas.drawCircle(
@@ -268,7 +283,6 @@ class _BalancePainter extends CustomPainter {
         ..strokeWidth = 3,
     );
 
-    // Bola dibatasi di dalam lingkaran luar.
     var offset = Offset(x, y) * travel;
     if (offset.distance > travel) {
       offset = offset / offset.distance * travel;
