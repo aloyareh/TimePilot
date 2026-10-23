@@ -8,15 +8,10 @@ import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
 import '../tasks/task_providers.dart';
 
-/// Dialog tambah / ubah klien (PBI-07). Mengembalikan [Client] atau null.
-/// Klien wajib punya Zona Waktu (WIB/WITA/WIT/London) dan Tarif/Jam.
-/// Memakai service PBI-09 untuk pratinjau jam klien & konversi tarif ke IDR.
 class ClientFormDialog extends ConsumerStatefulWidget {
   const ClientFormDialog({super.key, this.initial, this.homeZone});
 
   final Client? initial;
-
-  /// Zona waktu rumah untuk pratinjau. Default: dari profil tersimpan.
   final String? homeZone;
 
   @override
@@ -71,10 +66,10 @@ class _ClientFormDialogState extends ConsumerState<ClientFormDialog> {
     );
   }
 
-  /// Menjamin zona waktu rumah tidak pernah null, apa pun sumbernya.
   static String _zoneOrDefault(String? zone) => zone ?? AppZones.wib;
 
   Widget _preview() {
+    final theme = Theme.of(context);
     final home = _zoneOrDefault(widget.homeZone ?? ref.watch(homeZoneProvider));
     final dual = TimeService.dual(
       DateTime.now().toUtc(),
@@ -89,24 +84,33 @@ class _ClientFormDialogState extends ConsumerState<ClientFormDialog> {
         rate > 0 &&
         _currency != Currencies.idr) {
       final idr = rates.convert(rate, _currency, Currencies.idr);
-      money = '≈ ${formatMoney(idr, Currencies.idr)} / jam';
+      money = '\u2248 ${formatMoney(idr, Currencies.idr)} / jam';
     }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.s12),
       decoration: BoxDecoration(
         color: AppColors.blue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.r16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Sekarang', style: Theme.of(context).textTheme.labelSmall),
-          const SizedBox(height: 2),
-          Text('Klien: ${dual.client}'),
-          Text('Kamu:  ${dual.home}'),
-          if (money != null) ...[const SizedBox(height: 6), Text(money)],
+          Row(
+            children: [
+              const Icon(Icons.public, size: 16, color: AppColors.blue),
+              const SizedBox(width: AppSpacing.s8),
+              Text('Sekarang', style: theme.textTheme.labelMedium),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text('Klien: ${dual.client}', style: theme.textTheme.bodyMedium),
+          Text('Kamu:  ${dual.home}', style: theme.textTheme.bodyMedium),
+          if (money != null) ...[
+            const SizedBox(height: AppSpacing.s8),
+            Text(money, style: theme.textTheme.titleSmall),
+          ],
         ],
       ),
     );
@@ -116,6 +120,13 @@ class _ClientFormDialogState extends ConsumerState<ClientFormDialog> {
   Widget build(BuildContext context) {
     final editing = widget.initial != null;
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s16,
+        vertical: AppSpacing.s24,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.r24),
+      ),
       title: Text(editing ? 'Ubah klien' : 'Klien baru'),
       content: SingleChildScrollView(
         child: Form(
@@ -127,23 +138,34 @@ class _ClientFormDialogState extends ConsumerState<ClientFormDialog> {
                 controller: _name,
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Nama klien'),
+                decoration: const InputDecoration(
+                  labelText: 'Nama klien',
+                  prefixIcon: Icon(Icons.business_center_outlined),
+                ),
                 validator: (v) =>
                     (v ?? '').trim().isEmpty ? 'Nama wajib diisi.' : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.s12),
               DropdownButtonFormField<String>(
                 initialValue: _zone,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Zona waktu klien',
+                  prefixIcon: Icon(Icons.public),
                 ),
                 items: [
                   for (final z in AppZones.all)
-                    DropdownMenuItem(value: z, child: Text(AppZones.label(z))),
+                    DropdownMenuItem(
+                      value: z,
+                      child: Text(
+                        AppZones.label(z),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                 ],
                 onChanged: (v) => setState(() => _zone = v ?? _zone),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.s12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -164,11 +186,12 @@ class _ClientFormDialogState extends ConsumerState<ClientFormDialog> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.s8),
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<String>(
                       initialValue: _currency,
+                      isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Mata uang'),
                       items: [
                         for (final c in Currencies.all)
@@ -180,7 +203,7 @@ class _ClientFormDialogState extends ConsumerState<ClientFormDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.s16),
               _preview(),
             ],
           ),

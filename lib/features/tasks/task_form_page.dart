@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/notifications/notification_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/time/time_service.dart';
 import '../../data/local/models/client.dart';
 import '../../data/local/models/task.dart';
 import 'task_providers.dart';
 
-/// Tambah/ubah tugas. Jadwal diisi dalam zona waktu KLIEN lalu disimpan sebagai UTC.
 class TaskFormPage extends ConsumerStatefulWidget {
   const TaskFormPage({super.key, this.task});
 
@@ -101,7 +101,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     final utc = _deadlineUtc(client);
     if (utc == null) return null;
     final home = ref.read(homeZoneProvider);
-    final d = TimeService.dual(utc, homeZone: home, clientZone: client.timezoneId);
+    final d = TimeService.dual(
+      utc,
+      homeZone: home,
+      clientZone: client.timezoneId,
+    );
     return client.timezoneId == home
         ? d.home
         : 'Klien: ${d.client}\nKamu: ${d.home}';
@@ -138,10 +142,32 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     try {
       final svc = ref.read(notificationServiceProvider);
       await svc.init();
-      await svc.requestPermissions(); // dialog hanya muncul bila belum diizinkan
+      await svc.requestPermissions();
     } catch (_) {}
     await ref.read(tasksProvider.notifier).save(task);
     if (mounted) Navigator.of(context).pop();
+  }
+
+  Widget _infoBox({
+    required IconData icon,
+    required Color color,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(child: child),
+        ],
+      ),
+    );
   }
 
   @override
@@ -162,131 +188,173 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.s16),
             children: [
-              TextFormField(
-                controller: _title,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Judul tugas / meeting'),
-                validator: (v) =>
-                    (v ?? '').trim().isEmpty ? 'Judul wajib diisi.' : null,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                key: ValueKey(_clientId),
-                // Nilai hanya dipakai bila klien masih ada di daftar (klien
-                // bisa saja sudah dihapus dari Profile), kalau tidak dropdown error.
-                initialValue: clients.any((c) => c.id == _clientId)
-                    ? _clientId
-                    : null,
-                decoration: const InputDecoration(labelText: 'Klien'),
-                items: [
-                  for (final c in clients)
-                    DropdownMenuItem(
-                      value: c.id,
-                      child: Text('${c.name} (${AppZones.label(c.timezoneId)})'),
+              _FormSection(
+                title: 'Detail Tugas',
+                children: [
+                  TextFormField(
+                    controller: _title,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Judul tugas / meeting',
+                      prefixIcon: Icon(Icons.assignment_outlined),
                     ),
-                ],
-                onChanged: (v) => setState(() => _clientId = v),
-              ),
-              if (clients.isEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    validator: (v) =>
+                        (v ?? '').trim().isEmpty ? 'Judul wajib diisi.' : null,
                   ),
-                  child: const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: AppSpacing.s16),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey(_clientId),
+                    isExpanded: true,
+                    initialValue: clients.any((c) => c.id == _clientId)
+                        ? _clientId
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Klien',
+                      prefixIcon: Icon(Icons.business_center_outlined),
+                    ),
+                    items: [
+                      for (final c in clients)
+                        DropdownMenuItem(
+                          value: c.id,
+                          child: Text(
+                            '${c.name} (${AppZones.label(c.timezoneId)})',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) => setState(() => _clientId = v),
+                  ),
+                  if (clients.isEmpty) ...[
+                    const SizedBox(height: AppSpacing.s12),
+                    _infoBox(
+                      icon: Icons.info_outline,
+                      color: AppColors.warning,
+                      child: Text(
+                        'Belum ada klien. Tambahkan klien lewat Ubah persona '
+                        'di tab Profile, lalu kembali ke sini.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s16),
+              _FormSection(
+                title: client == null
+                    ? 'Jadwal (zona waktu klien)'
+                    : 'Jadwal (waktu ${AppZones.label(client.timezoneId)})',
+                children: [
+                  Row(
                     children: [
-                      Icon(Icons.info_outline),
-                      SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          'Belum ada klien. Tambahkan klien di tab Profile '
-                          '(menu User Persona), lalu kembali ke sini.',
+                        child: OutlinedButton.icon(
+                          onPressed: _pickDate,
+                          icon: const Icon(Icons.calendar_today, size: 18),
+                          label: Text(dateText),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _pickTime,
+                          icon: const Icon(Icons.schedule, size: 18),
+                          label: Text(timeText),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Text(
-                client == null
-                    ? 'Jadwal (dalam zona waktu klien)'
-                    : 'Jadwal (dalam waktu ${AppZones.label(client.timezoneId)})',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickDate,
-                      icon: const Icon(Icons.calendar_today),
-                      label: Text(dateText),
+                  if (preview != null) ...[
+                    const SizedBox(height: AppSpacing.s12),
+                    _infoBox(
+                      icon: Icons.public,
+                      color: AppColors.blue,
+                      child: Text(preview, style: theme.textTheme.bodyMedium),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickTime,
-                      icon: const Icon(Icons.schedule),
-                      label: Text(timeText),
-                    ),
-                  ),
+                  ],
                 ],
               ),
-              if (preview != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.public, color: theme.colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(preview)),
-                    ],
-                  ),
-                ),
-              ],
               if (_editing) ...[
-                const SizedBox(height: 16),
-                Text('Status', style: theme.textTheme.labelLarge),
-                const SizedBox(height: 8),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: TaskStatus.todo, label: Text('Belum')),
-                    ButtonSegment(
-                      value: TaskStatus.inProgress,
-                      label: Text('Berjalan'),
+                const SizedBox(height: AppSpacing.s16),
+                _FormSection(
+                  title: 'Status',
+                  children: [
+                    SegmentedButton<String>(
+                      style: SegmentedButton.styleFrom(
+                        selectedBackgroundColor: AppColors.blue.withValues(
+                          alpha: 0.12,
+                        ),
+                        selectedForegroundColor: AppColors.blue,
+                      ),
+                      segments: const [
+                        ButtonSegment(
+                          value: TaskStatus.todo,
+                          label: Text('Belum'),
+                        ),
+                        ButtonSegment(
+                          value: TaskStatus.inProgress,
+                          label: Text('Berjalan'),
+                        ),
+                        ButtonSegment(
+                          value: TaskStatus.done,
+                          label: Text('Selesai'),
+                        ),
+                      ],
+                      selected: {_status},
+                      onSelectionChanged: (s) =>
+                          setState(() => _status = s.first),
                     ),
-                    ButtonSegment(value: TaskStatus.done, label: Text('Selesai')),
                   ],
-                  selected: {_status},
-                  onSelectionChanged: (s) => setState(() => _status = s.first),
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.s24),
               FilledButton(
                 onPressed: _busy ? null : _save,
                 child: _busy
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Simpan'),
               ),
+              const SizedBox(height: AppSpacing.s16),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FormSection extends StatelessWidget {
+  const _FormSection({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r24),
+        boxShadow: AppShadows.soft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.s16),
+          ...children,
+        ],
       ),
     );
   }
