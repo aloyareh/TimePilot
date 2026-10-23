@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'alarm_sound.dart';
 
 import '../time/time_service.dart';
 
@@ -26,18 +27,31 @@ class NotificationService {
   static const channelId = 'task_alarm_v1';
   static const channelName = 'Alarm tugas';
 
+  AlarmSound? _sound;
+ 
+  /// Suara alarm pilihan pengguna (null = default). Diatur dari init() dan
+  /// dari AlarmSoundNotifier.
+  AlarmSound? get sound => _sound;
+  void setSound(AlarmSound? sound) => _sound = sound;
+ 
+  // Android mengunci suara per channel, jadi tiap suara memakai channel sendiri.
+  String get _channelId =>
+      _sound == null ? channelId : '${channelId}_${_sound!.channelSuffix}';
+ 
   /// Alarm baru mati setelah tantangan selesai (US-2): notifikasi tidak bisa
   /// digeser (ongoing) dan tidak hilang saat diketuk (autoCancel false).
   /// timeoutAfter = pengaman agar tidak berbunyi selamanya jika tantangan macet.
-  static final _details = NotificationDetails(
+  NotificationDetails get _details => NotificationDetails(
     android: AndroidNotificationDetails(
-      channelId,
+      _channelId,
       channelName,
       channelDescription: 'Pengingat meeting dan deadline',
       importance: Importance.max,
       priority: Priority.high,
       category: AndroidNotificationCategory.alarm,
       audioAttributesUsage: AudioAttributesUsage.alarm,
+      playSound: true,
+      sound: _sound == null ? null : UriAndroidNotificationSound(_sound!.uri),
       fullScreenIntent: true,
       autoCancel: false,
       ongoing: true,
@@ -46,7 +60,6 @@ class NotificationService {
       additionalFlags: Int32List.fromList(<int>[4]),
     ),
   );
-
   AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
       .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin
@@ -70,6 +83,7 @@ class NotificationService {
       ),
       onDidReceiveNotificationResponse: (r) => _onSelect?.call(r.payload),
     );
+    _sound = await const AlarmSoundStore().read();
     _ready = true;
   }
 

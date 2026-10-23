@@ -10,6 +10,7 @@ import 'client_list_section.dart';
 import 'persona_setup_page.dart';
 import 'profile_avatar.dart';
 import 'profile_providers.dart';
+import 'alarm_sound_tile.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -164,6 +165,12 @@ class ProfilePage extends ConsumerWidget {
             decoration: _cardDecoration,
             clipBehavior: Clip.antiAlias,
             child: const BiometricToggleTile(),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          Container(
+            decoration: _cardDecoration,
+            clipBehavior: Clip.antiAlias,
+            child: const AlarmSoundTile(),
           ),
           const SizedBox(height: AppSpacing.s16),
         ],
