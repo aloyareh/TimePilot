@@ -146,8 +146,7 @@ class TasksNotifier extends Notifier<List<Task>> {
       await svc.init();
       final now = DateTime.now().toUtc();
       for (final t in tasks) {
-        if (t.status != TaskStatus.todo || !t.deadlineUtc.isAfter(now))
-          continue;
+        if (t.status != TaskStatus.todo || !t.deadlineUtc.isAfter(now)) continue;
         final client = ref.read(clientRepositoryProvider).getById(t.clientId);
         await svc.scheduleAt(
           id: taskAlarmId(t.id),
