@@ -21,8 +21,8 @@ abstract class AppZones {
 class DualTimeText {
   const DualTimeText({required this.home, required this.client});
 
-  final String home; 
-  final String client; 
+  final String home;
+  final String client;
 }
 
 class TimeService {
@@ -84,6 +84,10 @@ class TimeService {
     home: formatDateHm(instant, homeZone),
     client: formatDateHm(instant, clientZone),
   );
+
+  /// True jika [instant] sudah lewat (atau sama dengan) [now].
+  static bool isPast(DateTime instant, {DateTime? now}) =>
+      !instant.toUtc().isAfter((now ?? DateTime.now()).toUtc());
 
   static String _two(int v) => v.toString().padLeft(2, '0');
 }

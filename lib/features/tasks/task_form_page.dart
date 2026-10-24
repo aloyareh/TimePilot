@@ -63,12 +63,20 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
+    final client = _clientById(_clientId);
+    final nowLocal = client == null
+        ? DateTime.now()
+        : TimeService.inZone(DateTime.now(), client.timezoneId);
+    final today = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+    final existing = _date;
+    final firstDate = (existing != null && existing.isBefore(today))
+        ? existing
+        : today;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _date ?? now,
-      firstDate: now.subtract(const Duration(days: 365)),
-      lastDate: now.add(const Duration(days: 365 * 3)),
+      initialDate: existing ?? today,
+      firstDate: firstDate,
+      lastDate: today.add(const Duration(days: 365 * 3)),
     );
     if (picked != null) setState(() => _date = picked);
   }
@@ -111,6 +119,20 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         : 'Klien: ${d.client}\nKamu: ${d.home}';
   }
 
+  /// Pesan error jika waktu yang dipilih sudah lewat menurut zona klien.
+  /// Saat mengubah tugas, hanya divalidasi bila deadline diubah.
+  String? _pastError(Client? client) {
+    if (client == null) return null;
+    final utc = _deadlineUtc(client);
+    if (utc == null) return null;
+    if (_editing && utc == widget.task!.deadlineUtc) return null;
+    if (!TimeService.isPast(utc)) return null;
+    final zone = AppZones.label(client.timezoneId);
+    final nowText = TimeService.formatHm(DateTime.now(), client.timezoneId);
+    return 'Waktu $zone yang dipilih sudah lewat (sekarang $nowText). '
+        'Pilih waktu yang akan datang.';
+  }
+
   void _snack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
@@ -124,6 +146,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     final utc = _deadlineUtc(client);
     if (utc == null) {
       _snack('Isi tanggal dan jam.');
+      return;
+    }
+    final pastError = _pastError(client);
+    if (pastError != null) {
+      _snack(pastError);
       return;
     }
 
@@ -181,6 +208,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
               '${_date!.month.toString().padLeft(2, '0')}/${_date!.year}';
     final timeText = _time == null ? 'Pilih jam' : _time!.format(context);
     final client = _clientById(_clientId);
+    final pastError = _pastError(client);
 
     return Scaffold(
       appBar: AppBar(title: Text(_editing ? 'Ubah tugas' : 'Tugas baru')),
@@ -267,6 +295,19 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                       ),
                     ],
                   ),
+                  if (pastError != null) ...[
+                    const SizedBox(height: AppSpacing.s12),
+                    _infoBox(
+                      icon: Icons.error_outline,
+                      color: AppColors.error,
+                      child: Text(
+                        pastError,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
                   if (preview != null) ...[
                     const SizedBox(height: AppSpacing.s12),
                     _infoBox(
