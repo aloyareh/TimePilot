@@ -146,7 +146,8 @@ class TasksNotifier extends Notifier<List<Task>> {
       await svc.init();
       final now = DateTime.now().toUtc();
       for (final t in tasks) {
-        if (t.status != TaskStatus.todo || !t.deadlineUtc.isAfter(now)) continue;
+        if (t.status != TaskStatus.todo || !t.deadlineUtc.isAfter(now))
+          continue;
         final client = ref.read(clientRepositoryProvider).getById(t.clientId);
         await svc.scheduleAt(
           id: taskAlarmId(t.id),
@@ -276,5 +277,33 @@ final taskFilterProvider = NotifierProvider<TaskFilterNotifier, TaskFilter>(
 final filteredTasksProvider = Provider<List<Task>>((ref) {
   final tasks = ref.watch(tasksProvider);
   final clients = {for (final c in ref.watch(clientsProvider)) c.id: c};
-  return applyTaskFilter(tasks, clients, ref.watch(taskFilterProvider));
+  final filtered = applyTaskFilter(
+    tasks,
+    clients,
+    ref.watch(taskFilterProvider),
+  );
+  if (!ref.watch(taskSortLatestFirstProvider)) return filtered;
+  return sortTasksLatestFirst(filtered);
 });
+
+class TaskSortNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool latestFirst) => state = latestFirst;
+}
+
+final taskSortLatestFirstProvider = NotifierProvider<TaskSortNotifier, bool>(
+  TaskSortNotifier.new,
+);
+
+List<Task> sortTasksLatestFirst(List<Task> tasks) {
+  final copy = [...tasks];
+  copy.sort((a, b) {
+    final da = a.status == TaskStatus.done ? 1 : 0;
+    final db = b.status == TaskStatus.done ? 1 : 0;
+    if (da != db) return da - db;
+    return b.deadlineUtc.compareTo(a.deadlineUtc);
+  });
+  return copy;
+}

@@ -9,13 +9,13 @@ import '../../data/local/models/task.dart';
 import '../auth/auth_controller.dart';
 import '../blockchain/blockchain_page.dart';
 import '../cafes/cafe_entry_card.dart';
+import '../chat/chat_entry_card.dart';
 import '../earnings/earnings_page.dart';
 import '../earnings/earnings_providers.dart';
 import '../profile/persona_setup_page.dart';
 import '../session/task_session_page.dart';
 import 'task_form_page.dart';
 import 'task_providers.dart';
-import '../chat/chat_entry_card.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -88,8 +88,45 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             horizontal: AppSpacing.s4,
             vertical: AppSpacing.s4,
           ),
-        ),        items: items,
+        ),
+        items: items,
         onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _sortButton(bool latestFirst) {
+    final active = latestFirst ? AppColors.blue : AppColors.navInactive;
+    return PopupMenuButton<bool>(
+      tooltip: 'Urutkan berdasarkan waktu',
+      position: PopupMenuPosition.under,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+      ),
+      onSelected: ref.read(taskSortLatestFirstProvider.notifier).set,
+      itemBuilder: (_) => [
+        CheckedPopupMenuItem<bool>(
+          value: false,
+          checked: !latestFirst,
+          child: const Text('Waktu terdekat'),
+        ),
+        CheckedPopupMenuItem<bool>(
+          value: true,
+          checked: latestFirst,
+          child: const Text('Waktu terlama'),
+        ),
+      ],
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.r12),
+          border: Border.all(
+            color: latestFirst ? AppColors.blue : AppColors.surfaceGray,
+          ),
+        ),
+        child: Icon(Icons.swap_vert_rounded, color: active),
       ),
     );
   }
@@ -98,6 +135,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     TaskFilter filter,
     TaskFilterNotifier notifier,
     List<Client> clients,
+    bool latestFirst,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -171,6 +209,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     DropdownMenuItem(value: c, child: Text(c)),
                 ],
               ),
+              const SizedBox(width: AppSpacing.s8),
+              _sortButton(latestFirst),
             ],
           ),
         ],
@@ -218,6 +258,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final tasks = ref.watch(filteredTasksProvider);
     final clients = ref.watch(clientsProvider);
     final filter = ref.watch(taskFilterProvider);
+    final latestFirst = ref.watch(taskSortLatestFirstProvider);
     final home = ref.watch(homeZoneProvider);
     final byId = {for (final c in clients) c.id: c};
     final notifier = ref.read(taskFilterProvider.notifier);
@@ -269,7 +310,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               ),
             ),
           ),
-          SliverToBoxAdapter(child: _filters(filter, notifier, clients)),
+          SliverToBoxAdapter(
+            child: _filters(filter, notifier, clients, latestFirst),
+          ),
           if (tasks.isEmpty)
             SliverToBoxAdapter(
               child: Center(child: _empty(all.isEmpty, filter, notifier)),
@@ -400,50 +443,46 @@ class _DashboardHeader extends ConsumerWidget {
           const SizedBox(height: AppSpacing.s24),
           Text('Menu Utama', style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.s12),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _MenuTile(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _MenuTile(
                   icon: Icons.add_rounded,
                   color: AppColors.blue,
-                    title: 'Tambah Tugas',
-                    onTap: () => _push(context, const TaskFormPage()),
-                  ),
+                  title: 'Tambah Tugas',
+                  onTap: () => _push(context, const TaskFormPage()),
                 ),
-                const SizedBox(width: AppSpacing.s8),
-                Expanded(
-                  child: _MenuTile(
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: _MenuTile(
                   icon: Icons.payments_outlined,
                   color: AppColors.success,
-                    title: 'Pendapatan',
-                    onTap: () => _push(context, const EarningsPage()),
-                  ),
+                  title: 'Pendapatan',
+                  onTap: () => _push(context, const EarningsPage()),
                 ),
-                const SizedBox(width: AppSpacing.s8),
-                Expanded(
-                  child: _MenuTile(
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: _MenuTile(
                   icon: Icons.person_outline_rounded,
                   color: AppColors.orange,
-                    title: 'Atur Persona',
-                    onTap: () => _push(
-                      context,
-                      const PersonaSetupPage(onboarding: false),
-                    ),
-                  ),
+                  title: 'Atur Persona',
+                  onTap: () =>
+                      _push(context, const PersonaSetupPage(onboarding: false)),
                 ),
-                const SizedBox(width: AppSpacing.s8),
-                Expanded(
-                  child: _MenuTile(
-                    icon: Icons.link,
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: _MenuTile(
+                  icon: Icons.link,
                   color: AppColors.navy,
-                    title: 'Blockchain',
-                    onTap: () => _push(context, const BlockchainPage()),
-                  ),
+                  title: 'Blockchain',
+                  onTap: () => _push(context, const BlockchainPage()),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -470,7 +509,10 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.s12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s8,
+        vertical: AppSpacing.s12,
+      ),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(AppRadius.r16),
@@ -479,42 +521,51 @@ class _StatTile extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: AppColors.surfaceGray,
               borderRadius: BorderRadius.circular(AppRadius.r8),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: AppSpacing.s8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text.rich(
-                  TextSpan(
-                    text: value,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.navy,
-                    ),
-                    children: [
-                      if (unit != null)
-                        TextSpan(
-                          text: ' $unit',
-                          style: theme.textTheme.labelSmall,
-                        ),
-                    ],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(
+                    TextSpan(
+                      text: value,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.navy,
+                      ),
+                      children: [
+                        if (unit != null)
+                          TextSpan(
+                            text: ' $unit',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 10,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -544,40 +595,44 @@ class _MenuTile extends StatelessWidget {
     final radius = BorderRadius.circular(AppRadius.r16);
     return Material(
       color: Colors.transparent,
-      child: Ink(
-        child: InkWell(
-          borderRadius: radius,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s4,
-              vertical: AppSpacing.s12,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceGray,
-                    borderRadius: BorderRadius.circular(AppRadius.r12),
-                  ),
-                  child: Icon(icon, color: color, size: 32),
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s4,
+            vertical: AppSpacing.s12,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceGray,
+                  borderRadius: BorderRadius.circular(AppRadius.r12),
                 ),
-                const SizedBox(height: AppSpacing.s8),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.navy,
+                child: Icon(icon, color: color, size: 32),
+              ),
+              const SizedBox(height: AppSpacing.s8),
+              for (final word in title.split(' '))
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      word,
+                      maxLines: 1,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.navy,
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),

@@ -137,7 +137,7 @@ class _BalanceChallengePageState extends State<BalanceChallengePage> {
                     'Posisi target berubah tiap ronde (${_tracker.rounds} ronde).',
                     textAlign: TextAlign.center,
                   ),
-                                   const SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Expanded(
                     child: Center(
                       child: AspectRatio(

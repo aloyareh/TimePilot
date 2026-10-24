@@ -10,7 +10,10 @@ import '../../data/local/models/profile.dart';
 ///
 ///   challengeBuilders[ChallengeType.shake] =
 ///       (context, difficulty) => ShakeChallengePage(difficulty: difficulty);
-typedef ChallengeBuilder = Widget Function(BuildContext context, int difficulty);
+typedef ChallengeBuilder = Widget Function(
+  BuildContext context,
+  int difficulty,
+);
 
 final Map<String, ChallengeBuilder> challengeBuilders = {};
 
@@ -19,5 +22,6 @@ String challengeLabel(String type) => switch (type) {
   ChallengeType.balance => 'Balance Challenge',
   ChallengeType.memory => 'Memory Puzzle',
   ChallengeType.math => 'Soal Matematika',
+  ChallengeType.puzzle => 'Puzzle Gambar',
   _ => type,
 };

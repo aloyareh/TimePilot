@@ -7,6 +7,7 @@ abstract class ChallengeType {
   static const balance = 'balance';
   static const memory = 'memory';
   static const math = 'math';
+  static const puzzle = 'puzzle';
 }
 
 @HiveType(typeId: 0)
@@ -18,13 +19,13 @@ class Profile {
   final String role;
 
   @HiveField(2)
-  final String homeTimezone; 
+  final String homeTimezone;
 
   @HiveField(3)
   final String mainCurrency;
 
   @HiveField(4)
-  final int workStartMinutes; 
+  final int workStartMinutes;
 
   @HiveField(5)
   final int workEndMinutes;

@@ -83,9 +83,8 @@ class BalanceTracker {
   double get pitch => _pitch;
 
   /// Jarak sudut HP dari sudut target ronde ini (radian).
-  double get deviation => sqrt(
-    pow(_roll - _targetRoll, 2) + pow(_pitch - _targetPitch, 2),
-  );
+  double get deviation =>
+      sqrt(pow(_roll - _targetRoll, 2) + pow(_pitch - _targetPitch, 2));
 
   bool get isBalanced => deviation <= tolerance;
   int get heldMs => _heldMs;

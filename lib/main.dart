@@ -17,6 +17,7 @@ import 'features/session/task_session_page.dart';
 
 import 'data/local/models/profile.dart';
 import 'features/challenges/balance_challenge_page.dart';
+import 'features/challenges/puzzle_challenge_page.dart';
 import 'features/challenges/shake_challenge_page.dart';
 import 'features/session/challenge_registry.dart';
 import 'features/sync/sync_widgets.dart';
@@ -34,9 +35,10 @@ Future<void> main() async {
       ShakeChallengePage(difficulty: difficulty);
   challengeBuilders[ChallengeType.balance] = (context, difficulty) =>
       BalanceChallengePage(difficulty: difficulty);
+  challengeBuilders[ChallengeType.puzzle] = (context, difficulty) =>
+      PuzzleChallengePage(difficulty: difficulty);
   runApp(const ProviderScope(child: MainApp()));
 }
-
 
 class MainApp extends ConsumerStatefulWidget {
   const MainApp({super.key});
@@ -66,13 +68,9 @@ class _MainAppState extends ConsumerState<MainApp> {
     });
     // Alarm milik satu akun tidak boleh berbunyi saat akun lain / tidak ada
     // yang login: batal semua saat keluar, jadwalkan ulang milik akun yang masuk.
-    ref.listenManual<String?>(
-      currentUserIdProvider,
-      (prev, next) {
-        _onUserChanged(prev, next);
-      },
-      fireImmediately: true,
-    );
+    ref.listenManual<String?>(currentUserIdProvider, (prev, next) {
+      _onUserChanged(prev, next);
+    }, fireImmediately: true);
     _handleLaunch();
   }
 
@@ -122,7 +120,9 @@ class _MainAppState extends ConsumerState<MainApp> {
     }
     _pendingTaskId = null;
     nav.push(
-      MaterialPageRoute<void>(builder: (_) => TaskSessionPage(taskId: id, autoStart: true)),
+      MaterialPageRoute<void>(
+        builder: (_) => TaskSessionPage(taskId: id, autoStart: true),
+      ),
     );
   }
 
@@ -132,7 +132,9 @@ class _MainAppState extends ConsumerState<MainApp> {
       navigatorKey: rootNavigatorKey,
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
-      home: AuthGate(child:  SyncLifecycle(child: PersonaGate(child: MainShell()))),
+      home: AuthGate(
+        child: SyncLifecycle(child: PersonaGate(child: MainShell())),
+      ),
     );
   }
 }
