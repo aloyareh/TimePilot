@@ -17,6 +17,7 @@ import 'features/session/task_session_page.dart';
 
 import 'data/local/models/profile.dart';
 import 'features/challenges/balance_challenge_page.dart';
+import 'features/challenges/math_challenge_page.dart';
 import 'features/challenges/puzzle_challenge_page.dart';
 import 'features/challenges/shake_challenge_page.dart';
 import 'features/session/challenge_registry.dart';
@@ -37,6 +38,8 @@ Future<void> main() async {
       BalanceChallengePage(difficulty: difficulty);
   challengeBuilders[ChallengeType.puzzle] = (context, difficulty) =>
       PuzzleChallengePage(difficulty: difficulty);
+  challengeBuilders[ChallengeType.math] = (context, difficulty) =>
+      MathChallengePage(difficulty: difficulty);
   runApp(const ProviderScope(child: MainApp()));
 }
 
