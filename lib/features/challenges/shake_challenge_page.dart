@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -160,24 +159,6 @@ class _ShakeChallengePageState extends State<ShakeChallengePage> {
                         fontSize: 13,
                       ),
                       textAlign: TextAlign.center,
-                    ),
-                  ],
-                  if (kDebugMode && !done) ...[
-                    const SizedBox(height: AppSpacing.s24),
-                    TextButton(
-                      onPressed: () {
-                        _counter.addSample(
-                          x: 99,
-                          y: 0,
-                          z: 0,
-                          timestampMs:
-                              DateTime.now().millisecondsSinceEpoch +
-                              1000000 * count,
-                        );
-                        _count.value = _counter.count;
-                        if (_counter.isDone) _complete();
-                      },
-                      child: const Text('Simulasi 1 kocokan (debug)'),
                     ),
                   ],
                 ],

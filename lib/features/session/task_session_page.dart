@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -293,15 +292,6 @@ class TaskSessionPage extends ConsumerWidget {
                   Text(
                     'Tantangan ini belum tersedia di versi ini.',
                     style: theme.textTheme.bodySmall,
-                  ),
-                ],
-                if (!available || kDebugMode) ...[
-                  const SizedBox(height: AppSpacing.s4),
-                  TextButton(
-                    onPressed: () => ref
-                        .read(challengeClearedProvider.notifier)
-                        .clear(taskId),
-                    child: const Text('Lewati tantangan (sementara)'),
                   ),
                 ],
               ],

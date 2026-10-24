@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -186,18 +185,6 @@ class _BalanceChallengePageState extends State<BalanceChallengePage> {
                       _sensorError!,
                       style: TextStyle(color: theme.colorScheme.error),
                       textAlign: TextAlign.center,
-                    ),
-                  ],
-                  // Emulator tanpa sensor: tombol ini hanya ada di debug.
-                  if (kDebugMode && !done) ...[
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
-                        _tracker.debugCompleteRound();
-                        _publish();
-                        if (_tracker.isDone) _complete();
-                      },
-                      child: const Text('Simulasi 1 ronde (debug)'),
                     ),
                   ],
                 ],

@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -20,7 +19,7 @@ class PuzzleChallengePage extends StatefulWidget {
 }
 
 class _PuzzleChallengePageState extends State<PuzzleChallengePage> {
-  PuzzleBoard _board = PuzzleBoard.shuffled();
+  final PuzzleBoard _board = PuzzleBoard.shuffled();
   bool _finished = false;
 
   void _onTap(int index) {
@@ -134,14 +133,6 @@ class _PuzzleChallengePageState extends State<PuzzleChallengePage> {
                   ),
                 ),
               ),
-              if (kDebugMode && !_finished)
-                TextButton(
-                  onPressed: () {
-                    _board = PuzzleBoard.solved();
-                    _complete();
-                  },
-                  child: const Text('Selesaikan puzzle (debug)'),
-                ),
             ],
           ),
         ),
