@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../blockchain/auto_anchor.dart';
 import 'sync_service.dart';
 
 /// Membungkus layar utama: sinkron otomatis saat masuk dan saat aplikasi kembali
@@ -56,7 +57,7 @@ class _SyncLifecycleState extends ConsumerState<SyncLifecycle>
     // Gagal terakhir kali (offline): coba lagi tiap tick. Selain itu tiap 2 menit.
     if (s.error != null || age >= const Duration(minutes: 2)) {
       _last = DateTime.now();
-      ref.read(syncProvider.notifier).sync();
+      _syncThenAnchor();
     }
   }
 
@@ -64,7 +65,16 @@ class _SyncLifecycleState extends ConsumerState<SyncLifecycle>
     final now = DateTime.now();
     if (_last != null && now.difference(_last!) < const Duration(seconds: 30)) return;
     _last = now;
-    ref.read(syncProvider.notifier).sync();
+    _syncThenAnchor();
+  }
+
+  /// Sinkron dulu; bila berhasil, blok baru dijangkarkan ke blockchain.
+  Future<void> _syncThenAnchor() async {
+    await ref.read(syncProvider.notifier).sync();
+    if (!mounted) return;
+    if (ref.read(syncProvider).error == null) {
+      await ref.read(autoAnchorProvider).maybeAnchor();
+    }
   }
 
   @override
