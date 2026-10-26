@@ -16,7 +16,6 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   flutter_timezone: ^5.1.1
   geolocator: ^14.0.1
-  google_generative_ai: ^0.4.7
   hive_ce: ^2.20.2
   hive_ce_flutter: ^2.4.0
   http: ^1.6.0
